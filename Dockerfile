@@ -74,7 +74,7 @@ LABEL \
 
 # Import from builder
 COPY --from=buffer /tmp/rootfs /
-
+EXPOSE 3128
 # Use an unprivileged user
 USER 3proxy:3proxy
 
