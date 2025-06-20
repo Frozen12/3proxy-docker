@@ -2,19 +2,27 @@
 const setupSection = document.getElementById('setup-section');
 const rcloneTransferSection = document.getElementById('rclone-transfer-section');
 const webTerminalSection = document.getElementById('web-terminal-section');
-const recentCommandsSection = document.getElementById('recent-commands-section'); // New tab
-const notepadSection = document.getElementById('notepad-section'); // New tab
+const recentCommandsSection = document.getElementById('recent-commands-section');
+const notepadSection = document.getElementById('notepad-section');
 
 const navButtons = document.querySelectorAll('.nav-button');
+const rcloneTransferNavButton = document.getElementById('rclone-transfer-nav-button');
+const webTerminalNavButton = document.getElementById('web-terminal-nav-button');
+const rcloneStatusSpinner = document.getElementById('rclone-status-spinner');
+const terminalStatusSpinner = document.getElementById('terminal-status-spinner');
+
 
 const modeSelect = document.getElementById('mode');
 const modeDescription = document.getElementById('mode-description');
-const sourceFieldContainer = document.getElementById('source-field-container'); // Container for source/URL/protocol
-const sourceLabel = document.getElementById('source-label'); // Label for source/path to serve
-const sourceInput = document.getElementById('source'); // This is the input itself now (will be path to serve for serve mode)
-const urlInput = document.getElementById('url-input'); // New URL input for copyurl
-const serveProtocolSelect = document.getElementById('serve-protocol-select'); // New dropdown for serve protocol
-const destinationField = document.getElementById('destination-field'); // This is the div wrapping destination input
+const sourceFieldContainer = document.getElementById('source-field-container');
+const sourceLabel = document.getElementById('source-label');
+const sourceInput = document.getElementById('source');
+const urlInput = document.getElementById('url-input');
+const serveOptionsContainer = document.getElementById('serve-options-container'); // New container for serve protocol and port
+const serveProtocolSelect = document.getElementById('serve-protocol-select');
+const servePortInput = document.getElementById('serve-port-input'); // New port input for serve mode
+
+const destinationField = document.getElementById('destination-field');
 const destinationInput = document.getElementById('destination');
 const transfersInput = document.getElementById('transfers');
 const transfersValueSpan = document.getElementById('transfers-value');
@@ -32,21 +40,18 @@ const startRcloneBtn = document.getElementById('start-rclone-btn');
 const stopRcloneBtn = document.getElementById('stop-rclone-btn');
 const rcloneLiveOutput = document.getElementById('rcloneLiveOutput');
 const rcloneMajorStepsOutput = document.getElementById('rclone-major-steps');
-const rcloneSpinner = document.getElementById('rclone-spinner');
-const rcloneSpinnerText = document.getElementById('rclone-spinner-text');
+
 
 const rcloneConfFileInput = document.getElementById('rclone_conf_file_input');
 const rcloneConfFileNameDisplay = document.getElementById('rclone-conf-file-name');
 const saZipFileInput = document.getElementById('sa_zip_file_input');
 const saZipFileNameDisplay = document.getElementById('sa-zip-file-name');
-const majorStepsOutput = document.getElementById('majorStepsOutput'); // This is also used for setup section messages
+const majorStepsOutput = document.getElementById('majorStepsOutput');
 
 const terminalCommandInput = document.getElementById('terminalCommand');
 const executeTerminalBtn = document.getElementById('execute-terminal-btn');
 const stopTerminalBtn = document.getElementById('stop-terminal-btn');
 const terminalOutput = document.getElementById('terminalOutput');
-const terminalSpinner = document.getElementById('terminal-spinner');
-const terminalSpinnerText = document.getElementById('terminal-spinner-text');
 const terminalConfirmModal = document.getElementById('terminalConfirmModal');
 const terminalConfirmMessage = document.getElementById('terminalConfirmMessage');
 const confirmStopAndStartBtn = document.getElementById('confirmStopAndStartBtn');
@@ -59,11 +64,14 @@ const notepadContent = document.getElementById('notepad-content');
 
 
 // --- Global State Variables ---
-let rclonePollingInterval = null;
-let terminalPollingInterval = null;
-let isRcloneProcessRunning = false;
-let isTerminalProcessRunning = false;
+let rcloneStatusPollingInterval = null;
+let terminalStatusPollingInterval = null;
+let isRcloneProcessRunning = false; // Tracks UI state, not just backend
+let isTerminalProcessRunning = false; // Tracks UI state, not just backend
 let pendingTerminalCommand = null; // Stores command if user confirms stop & start
+
+let rcloneOutputScrollLocked = false; // For auto-scrolling pause
+let terminalOutputScrollLocked = false; // For auto-scrolling pause
 
 // For header scroll behavior
 let lastScrollY = 0;
@@ -87,7 +95,6 @@ const RcloneModeDescriptions = {
     "serve": "Serve a remote over HTTP/WebDAV/FTP/etc.",
     "dedupe": "Remove duplicate files.",
     "cleanup": "Clean up the remote.",
-    // "checksum": "Check files checksums.", // Removed as per request
     "delete": "Remove files in the path.",
     "deletefile": "Remove a single file from remote.",
     "purge": "Remove all content in the path.",
@@ -102,7 +109,7 @@ const modesCopyUrl = ["copyurl"];
 const modesOneRemote = ["lsd", "ls", "tree", "mkdir", "size", "dedupe", "cleanup", "delete", "deletefile", "purge"];
 // Modes for serving a remote
 const modesServe = ["serve"];
-// Modes requiring no arguments other than --config
+// Modes requiring no arguments other than --config or just version
 const modesNoArgs = ["listremotes", "version"];
 
 const potentiallyDestructiveModes = ["delete", "purge", "move", "cleanup", "dedupe"];
@@ -130,39 +137,32 @@ function showSection(sectionId) {
         activeButton.classList.add('active');
     }
 
-    // Manage polling based on active section
-    if (sectionId === 'web-terminal') {
-        startTerminalPolling();
-    } else {
-        stopTerminalPolling();
-    }
-
     // Load notepad content if switching to notepad section
     if (sectionId === 'notepad') {
         loadNotepadContent();
     } else if (sectionId === 'recent-commands') {
         loadRecentCommands(); // Reload recent commands when its tab is opened
     }
-    // Rclone polling runs independently, as it can be active in background
+    // Status polling for Rclone and Terminal runs continuously via dedicated functions
 }
 
-function showRcloneSpinner(message = "Transferring...") {
-    rcloneSpinnerText.textContent = message;
-    rcloneSpinner.classList.remove('hidden');
+// Function to update the spinner visibility next to the tab heading
+function updateRcloneStatusIndicator(isRunning) {
+    if (isRunning) {
+        rcloneStatusSpinner.classList.remove('hidden');
+    } else {
+        rcloneStatusSpinner.classList.add('hidden');
+    }
 }
 
-function hideRcloneSpinner() {
-    rcloneSpinner.classList.add('hidden');
+function updateTerminalStatusIndicator(isRunning) {
+    if (isRunning) {
+        terminalStatusSpinner.classList.remove('hidden');
+    } else {
+        terminalStatusSpinner.classList.add('hidden');
+    }
 }
 
-function showTerminalSpinner(message = "Executing command...") {
-    terminalSpinnerText.textContent = message;
-    terminalSpinner.classList.remove('hidden');
-}
-
-function hideTerminalSpinner() {
-    terminalSpinner.classList.add('hidden');
-}
 
 // --- Header Scroll Behavior ---
 function handleScroll() {
@@ -191,25 +191,26 @@ function updateModeDescription() {
         rcloneMajorStepsOutput.style.display = 'none'; // Hide if not destructive
         rcloneMajorStepsOutput.innerHTML = ''; // Clear content
     }
-    toggleRemoteField(); // Call this to update field visibility based on the new mode
+    toggleInputFieldsByMode(); // Call this to update field visibility based on the new mode
 }
 
-function toggleRemoteField() {
+function toggleInputFieldsByMode() {
     const selectedMode = modeSelect.value;
 
     // Hide all mode-specific inputs initially
     sourceInput.classList.add('hidden');
     urlInput.classList.add('hidden');
-    serveProtocolSelect.classList.add('hidden');
-    sourceLabel.textContent = 'Source Path'; // Reset label
+    serveOptionsContainer.classList.add('hidden'); // Hide serve protocol and port
+    destinationField.classList.add('hidden'); // Hide destination field by default
 
     // Reset required attributes
     sourceInput.removeAttribute('required');
     urlInput.removeAttribute('required');
     destinationInput.removeAttribute('required');
+    servePortInput.removeAttribute('required');
 
 
-    // Show/hide source and destination fields based on mode type
+    // Show/hide fields based on mode type
     if (modesTwoRemotes.includes(selectedMode)) {
         sourceInput.classList.remove('hidden');
         sourceInput.setAttribute('required', 'true');
@@ -225,19 +226,16 @@ function toggleRemoteField() {
     } else if (modesOneRemote.includes(selectedMode)) {
         sourceInput.classList.remove('hidden'); // Keep source field for "path"
         sourceInput.setAttribute('required', 'true'); // Source is required as the "path"
-        destinationField.classList.add('hidden'); // Hide destination field
         sourceLabel.textContent = 'Path/Remote';
     } else if (modesServe.includes(selectedMode)) {
-        serveProtocolSelect.classList.remove('hidden'); // Show serve protocol dropdown
+        serveOptionsContainer.classList.remove('hidden'); // Show serve protocol and port
         sourceInput.classList.remove('hidden'); // Source becomes "Path to serve"
         sourceInput.setAttribute('required', 'true');
-        destinationField.classList.add('hidden'); // Hide destination field
+        servePortInput.setAttribute('required', 'true'); // Port is required for serve mode
         sourceLabel.textContent = 'Path to serve'; // Change label to Path to serve
     } else if (modesNoArgs.includes(selectedMode)) {
-        sourceInput.classList.add('hidden'); // Hide source field
-        destinationField.classList.add('hidden'); // Hide destination field
-        sourceInput.removeAttribute('required');
-        destinationInput.removeAttribute('required');
+        // No arguments needed, all inputs remain hidden
+        sourceLabel.textContent = 'Source/Remote (N/A)'; // Indicate not applicable
     }
 }
 
@@ -251,7 +249,7 @@ async function uploadFile(fileInput, fileNameDisplay, endpoint, outputElement, s
     }
 
     const formData = new FormData();
-    formData.append(fileInput.name, file); // Use fileInput.name here, which is 'rclone_conf' or 'sa_zip' as defined in HTML
+    formData.append(fileInput.name, file);
 
     logMessage(outputElement, `Uploading ${file.name}...`, 'info');
 
@@ -259,7 +257,6 @@ async function uploadFile(fileInput, fileNameDisplay, endpoint, outputElement, s
         const response = await fetch(endpoint, {
             method: 'POST',
             body: formData,
-            // DO NOT set Content-Type header manually when using FormData, browser sets it correctly
         });
 
         const result = await response.json();
@@ -295,6 +292,7 @@ async function startRcloneTransfer() {
     let source = '';
     const destination = destinationInput.value.trim();
     let serveProtocol = '';
+    let servePort = '';
 
     // Handle source/URL/path-to-serve based on selected mode
     if (modesCopyUrl.includes(mode)) {
@@ -306,8 +304,9 @@ async function startRcloneTransfer() {
     } else if (modesServe.includes(mode)) {
         source = sourceInput.value.trim(); // sourceInput is "Path to serve" in this mode
         serveProtocol = serveProtocolSelect.value;
-        if (!source) {
-            logMessage(rcloneMajorStepsOutput, "Path to serve is required for serve mode.", 'error');
+        servePort = servePortInput.value.trim();
+        if (!source || !serveProtocol || !servePort) {
+            logMessage(rcloneMajorStepsOutput, "Serve protocol, Port, and Path to serve are required for serve mode.", 'error');
             return;
         }
     } else if (modesTwoRemotes.includes(mode) || modesOneRemote.includes(mode)) {
@@ -317,7 +316,7 @@ async function startRcloneTransfer() {
             return;
         }
     } else if (modesNoArgs.includes(mode)) {
-        // No arguments needed
+        // No arguments needed, source/destination are effectively empty
     } else {
         logMessage(rcloneMajorStepsOutput, `Unknown Rclone mode: ${mode}`, 'error');
         return;
@@ -331,7 +330,7 @@ async function startRcloneTransfer() {
 
     rcloneLiveOutput.textContent = ''; // Clear previous output
     logMessage(rcloneMajorStepsOutput, 'Initializing Rclone transfer...', 'info');
-    showRcloneSpinner();
+    // Spinners are now next to tab names, managed by polling
     isRcloneProcessRunning = true;
     startRcloneBtn.classList.add('hidden');
     stopRcloneBtn.classList.remove('hidden');
@@ -349,7 +348,8 @@ async function startRcloneTransfer() {
         use_drive_trash: useDriveTrashCheckbox.checked,
         service_account: serviceAccountCheckbox.checked,
         dry_run: dryRunCheckbox.checked,
-        serve_protocol: serveProtocol // Include serve protocol in payload
+        serve_protocol: serveProtocol,
+        serve_port: servePort // Include serve port in payload
     };
 
     try {
@@ -365,7 +365,6 @@ async function startRcloneTransfer() {
             const errorData = await response.json();
             logMessage(rcloneMajorStepsOutput, `Error: ${errorData.message}`, 'error');
             // Ensure buttons are reset on error immediately
-            hideRcloneSpinner();
             isRcloneProcessRunning = false;
             startRcloneBtn.classList.remove('hidden');
             stopRcloneBtn.classList.add('hidden');
@@ -390,7 +389,9 @@ async function startRcloneTransfer() {
                 try {
                     const data = JSON.parse(line);
                     if (data.status === 'progress') {
-                        appendOutput(rcloneLiveOutput, data.output);
+                        // If output is an object (from JSON logging), stringify it for display
+                        const outputText = typeof data.output === 'object' ? JSON.stringify(data.output, null, 2) : data.output;
+                        appendOutput(rcloneLiveOutput, outputText);
                     } else if (data.status === 'complete') {
                         logMessage(rcloneMajorStepsOutput, data.message, 'success');
                         appendOutput(rcloneLiveOutput, '\n--- Rclone Command Finished (Success) ---\n');
@@ -407,8 +408,10 @@ async function startRcloneTransfer() {
                         saveRcloneTransferToHistory(mode, source, destination, 'Stopped');
                     }
                 } catch (parseError) {
-                    // console.warn('Could not parse JSON line:', line, parseError);
-                    // This might happen with partial lines, just ignore and wait for more data
+                    // This is where lines that are not valid JSON will be caught.
+                    // If it's not JSON, just append it as plain text.
+                    // console.warn('Could not parse JSON line, appending as plain text:', line, parseError);
+                    appendOutput(rcloneLiveOutput, line); // Append the raw line
                 }
             }
         }
@@ -417,29 +420,10 @@ async function startRcloneTransfer() {
         appendOutput(rcloneLiveOutput, `\nError during stream: ${error.message}`, 'error');
         saveRcloneTransferToHistory(mode, source, destination, 'Failed');
     } finally {
-        hideRcloneSpinner();
-        isRcloneProcessRunning = false;
+        isRcloneProcessRunning = false; // Update UI state
         startRcloneBtn.classList.remove('hidden');
         stopRcloneBtn.classList.add('hidden');
-        // Ensure any remaining buffer content is processed if it's a complete JSON object
-        if (buffer.trim()) {
-             try {
-                const data = JSON.parse(buffer.trim());
-                 if (data.status === 'complete') {
-                    logMessage(rcloneMajorStepsOutput, data.message, 'success');
-                    appendOutput(rcloneLiveOutput, '\n--- Rclone Command Finished (Success) ---\n');
-                    appendOutput(rcloneLiveOutput, data.output, 'success');
-                    saveRcloneTransferToHistory(mode, source, destination, 'Success');
-                } else if (data.status === 'error') {
-                    logMessage(rcloneMajorStepsOutput, `Error: ${data.message}`, 'error');
-                    appendOutput(rcloneLiveOutput, '\n--- Rclone Command Finished (Error) ---\n');
-                    appendOutput(rcloneLiveOutput, data.output, 'error');
-                    saveRcloneTransferToHistory(mode, source, destination, 'Failed');
-                }
-             } catch (e) {
-                 // Ignore if not a valid JSON object
-             }
-        }
+        // Any remaining buffer content is handled by the last `appendOutput` if it was valid JSON.
     }
 }
 
@@ -472,10 +456,19 @@ function appendOutput(element, text, status = 'default') {
     if (status === 'success') span.style.color = 'var(--success-color)';
     if (status === 'error') span.style.color = 'var(--error-color)';
     if (status === 'warning') span.style.color = 'var(--warning-color)';
-    if (status === 'info') span.style.color = 'var(--info-color)'; // Added info color
+    if (status === 'info') span.style.color = 'var(--info-color)';
 
     element.appendChild(span);
-    element.scrollTop = element.scrollHeight; // Auto-scroll to bottom
+
+    // Limit output lines to 800
+    while (element.childElementCount > 800) {
+        element.removeChild(element.firstChild);
+    }
+
+    // Auto-scroll logic
+    if (!rcloneOutputScrollLocked) {
+        element.scrollTop = element.scrollHeight;
+    }
 }
 
 function logMessage(element, message, type = 'info') {
@@ -483,27 +476,26 @@ function logMessage(element, message, type = 'info') {
     msgElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
     msgElement.classList.add(type); // Add class for styling
     element.appendChild(msgElement);
-    element.scrollTop = element.scrollHeight;
+    element.scrollTop = element.scrollHeight; // Always scroll main log message area
 }
 
 function clearRcloneOutput() {
     rcloneLiveOutput.textContent = '';
     rcloneMajorStepsOutput.innerHTML = '';
-    rcloneMajorStepsOutput.style.display = 'none';
-    logMessage(majorStepsOutput, "Rclone output cleared.", 'info');
+    rcloneMajorStepsOutput.style.display = 'none'; // Hide if not needed
+    logMessage(majorStepsOutput, "Rclone output cleared.", 'info'); // Log to general setup output
 }
 
 // --- Log Download ---
 async function downloadLogs() {
     try {
-        const response = await fetch('/download-rclone-log'); // Renamed endpoint for clarity
+        const response = await fetch('/download-rclone-log');
         if (response.ok) {
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            // Get filename from Content-Disposition header if available, otherwise default
             const contentDisposition = response.headers.get('Content-Disposition');
             const filenameMatch = contentDisposition && contentDisposition.match(/filename="?([^"]+)"?/);
             a.download = filenameMatch ? filenameMatch[1] : `rclone_webgui_log_${new Date().toISOString().slice(0,10)}.txt`;
@@ -557,11 +549,11 @@ async function executeTerminalCommand(command = null) {
     }
 
     logMessage(terminalOutput, `Executing: ${cmdToExecute}`, 'info');
-    showTerminalSpinner();
-    terminalOutput.textContent = ''; // Clear previous output
-    isTerminalProcessRunning = true;
+    // Spinners are now next to tab names, managed by polling
+    isTerminalProcessRunning = true; // Update UI state
     executeTerminalBtn.classList.add('hidden');
     stopTerminalBtn.classList.remove('hidden');
+    terminalOutput.textContent = ''; // Clear previous output
 
     try {
         const response = await fetch('/execute_terminal_command', {
@@ -574,7 +566,6 @@ async function executeTerminalCommand(command = null) {
         if (result.status === 'success') {
             logMessage(terminalOutput, result.message, 'success');
             saveCommandToHistory(cmdToExecute); // Save command on successful execution start
-            startTerminalPolling(); // Start polling immediately after command execution starts
             terminalCommandInput.value = ''; // Clear input field
         } else if (result.status === 'warning' && result.message.includes("already running")) {
             // Show confirmation modal
@@ -583,40 +574,50 @@ async function executeTerminalCommand(command = null) {
             pendingTerminalCommand = cmdToExecute; // Store the new command
         } else {
             logMessage(terminalOutput, `Error: ${result.message}`, 'error');
-            hideTerminalSpinner();
-            isTerminalProcessRunning = false;
+            isTerminalProcessRunning = false; // Update UI state
             executeTerminalBtn.classList.remove('hidden');
             stopTerminalBtn.classList.add('hidden');
         }
     } catch (error) {
         logMessage(terminalOutput, `Network error: ${error.message}`, 'error');
-        hideTerminalSpinner();
-        isTerminalProcessRunning = false;
+        isTerminalProcessRunning = false; // Update UI state
         executeTerminalBtn.classList.remove('hidden');
         stopTerminalBtn.classList.add('hidden');
     }
 }
 
-async function getTerminalOutput() {
+async function getTerminalOutputLive() {
     try {
         const response = await fetch('/get_terminal_output');
         const result = await response.json();
         terminalOutput.textContent = result.output; // Update with full content
-        terminalOutput.scrollTop = terminalOutput.scrollHeight; // Auto-scroll
 
-        if (!result.is_running && isTerminalProcessRunning) {
-            // Process has finished on the backend
-            logMessage(terminalOutput, "Terminal command finished.", 'info');
-            hideTerminalSpinner();
-            isTerminalProcessRunning = false;
-            executeTerminalBtn.classList.remove('hidden');
-            stopTerminalBtn.classList.add('hidden');
-            stopTerminalPolling(); // Stop polling when command is done
+        // Auto-scroll logic for terminal
+        if (!terminalOutputScrollLocked) {
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        // Update UI buttons and spinner based on backend status
+        if (result.is_running !== isTerminalProcessRunning) {
+            isTerminalProcessRunning = result.is_running;
+            if (isTerminalProcessRunning) {
+                executeTerminalBtn.classList.add('hidden');
+                stopTerminalBtn.classList.remove('hidden');
+                updateTerminalStatusIndicator(true);
+            } else {
+                executeTerminalBtn.classList.remove('hidden');
+                stopTerminalBtn.classList.add('hidden');
+                updateTerminalStatusIndicator(false);
+                logMessage(terminalOutput, "Terminal command finished.", 'info'); // Log final status
+            }
         }
     } catch (error) {
-        // Log error but don't stop polling immediately, might be a transient network issue
         console.error("Error fetching terminal output:", error);
-        // If the backend is truly down, polling will naturally stop as requests fail
+        // If there's a network error, assume process might have stopped or connection lost
+        isTerminalProcessRunning = false; // Set to false to try and reset UI
+        executeTerminalBtn.classList.remove('hidden');
+        stopTerminalBtn.classList.add('hidden');
+        updateTerminalStatusIndicator(false);
     }
 }
 
@@ -635,11 +636,10 @@ async function stopTerminalProcess() {
         const result = await response.json();
         if (result.status === 'success') {
             logMessage(terminalOutput, result.message, 'success');
-            hideTerminalSpinner();
-            isTerminalProcessRunning = false;
+            isTerminalProcessRunning = false; // Update UI state
             executeTerminalBtn.classList.remove('hidden');
             stopTerminalBtn.classList.add('hidden');
-            stopTerminalPolling(); // Stop polling when process is stopped
+            updateTerminalStatusIndicator(false);
         } else {
             logMessage(terminalOutput, `Failed to stop terminal process: ${result.message}`, 'error');
         }
@@ -653,17 +653,31 @@ function clearTerminalOutput() {
     logMessage(terminalOutput, "Terminal output cleared.", 'info');
 }
 
-function startTerminalPolling() {
-    if (terminalPollingInterval) {
-        clearInterval(terminalPollingInterval);
-    }
-    terminalPollingInterval = setInterval(getTerminalOutput, 1000); // Poll every 1 second
-}
-
-function stopTerminalPolling() {
-    if (terminalPollingInterval) {
-        clearInterval(terminalPollingInterval);
-        terminalPollingInterval = null;
+// --- Status Polling for Rclone & Terminal ---
+async function pollRcloneStatus() {
+    try {
+        const response = await fetch('/get_rclone_status');
+        const result = await response.json();
+        // Update UI buttons and spinner based on backend status
+        if (result.is_running !== isRcloneProcessRunning) {
+            isRcloneProcessRunning = result.is_running;
+            if (isRcloneProcessRunning) {
+                startRcloneBtn.classList.add('hidden');
+                stopRcloneBtn.classList.remove('hidden');
+                updateRcloneStatusIndicator(true);
+            } else {
+                startRcloneBtn.classList.remove('hidden');
+                stopRcloneBtn.classList.add('hidden');
+                updateRcloneStatusIndicator(false);
+            }
+        }
+    } catch (error) {
+        console.error("Error polling rclone status:", error);
+        // If there's a network error, assume process might have stopped or connection lost
+        isRcloneProcessRunning = false; // Set to false to try and reset UI
+        startRcloneBtn.classList.remove('hidden');
+        stopRcloneBtn.classList.add('hidden');
+        updateRcloneStatusIndicator(false);
     }
 }
 
@@ -857,9 +871,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Load saved theme on initial page load - Moved to <head> for login.html to prevent flash
-    // For index.html, this will still apply on DOMContentLoaded
-    const savedTheme = localStorage.getItem('theme') || 'dark-mode'; // Default to dark-mode
+    // Load saved theme on initial page load - Logic already in <head> for login.html and at top of DOMContentLoaded for index.html
+    const savedTheme = localStorage.getItem('theme') || 'dark-mode';
+    document.documentElement.className = savedTheme; // Apply to html for better consistency
     document.body.className = savedTheme;
 });
 
@@ -869,10 +883,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial UI setup
     showSection('rclone-transfer'); // Show Rclone Transfer section by default
     updateModeDescription(); // Set initial mode description
-    toggleRemoteField(); // Set initial destination field visibility
+    toggleInputFieldsByMode(); // Set initial input field visibility
+
+    // Start polling for process statuses immediately
+    rcloneStatusPollingInterval = setInterval(pollRcloneStatus, 2000); // Poll every 2 seconds
+    terminalStatusPollingInterval = setInterval(getTerminalOutputLive, 1000); // Poll every 1 second for terminal output and status
 
     // Header scroll behavior
     window.addEventListener('scroll', handleScroll);
+
+    // Auto-scrolling pause/resume for rclone output
+    rcloneLiveOutput.addEventListener('scroll', () => {
+        const { scrollTop, scrollHeight, clientHeight } = rcloneLiveOutput;
+        if (scrollHeight - scrollTop === clientHeight) {
+            rcloneOutputScrollLocked = false; // Scrolled to bottom, re-enable auto-scroll
+        } else {
+            rcloneOutputScrollLocked = true; // Scrolled up, pause auto-scroll
+        }
+    });
+
+    // Auto-scrolling pause/resume for terminal output
+    terminalOutput.addEventListener('scroll', () => {
+        const { scrollTop, scrollHeight, clientHeight } = terminalOutput;
+        if (scrollHeight - scrollTop === clientHeight) {
+            terminalOutputScrollLocked = false; // Scrolled to bottom, re-enable auto-scroll
+        } else {
+            terminalOutputScrollLocked = true; // Scrolled up, pause auto-scroll
+        }
+    });
 
 
     // Listen for file input changes to display file name
@@ -887,7 +925,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Rclone Form Events
     modeSelect.addEventListener('change', () => {
         updateModeDescription();
-        toggleRemoteField();
+        toggleInputFieldsByMode();
     });
     transfersInput.addEventListener('input', () => {
         transfersValueSpan.textContent = transfersInput.value;
@@ -920,10 +958,9 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelStopAndStartBtn.addEventListener('click', () => {
         terminalConfirmModal.classList.add('hidden');
         pendingTerminalCommand = null; // Clear pending command
-        hideTerminalSpinner();
-        isTerminalProcessRunning = false; // Reset state if cancelled
-        executeTerminalBtn.classList.remove('hidden');
-        stopTerminalBtn.classList.add('hidden');
+        // No need to hide spinner explicitly here, polling will handle it
+        // No need to reset isTerminalProcessRunning, polling will sync it
+        // No need to toggle buttons, polling will sync it
     });
 
     // Notepad auto-save
@@ -935,10 +972,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!terminalConfirmModal.classList.contains('hidden')) {
                 terminalConfirmModal.classList.add('hidden');
                 pendingTerminalCommand = null; // Clear pending command
-                hideTerminalSpinner();
-                isTerminalProcessRunning = false; // Reset state if cancelled
-                executeTerminalBtn.classList.remove('hidden');
-                stopTerminalBtn.classList.add('hidden');
+                // No need to hide spinner/reset state, polling will handle it
             }
         }
     });
