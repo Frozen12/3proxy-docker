@@ -6,28 +6,24 @@ body {
     transition: background-color 0.3s, color 0.3s;
 }
 
-/* Color Variables - Default Greenish White Monochromatic */
-:root {
-    /* Default Greenish White Monochromatic (Dark Mode) */
-    --primary-color: #DCE7DC; /* Lighter greenish-white for text */
-    --accent-color: #558B55; /* Muted vibrant green */
-    --bg-color: #1A2A1A; /* Dark background */
-    --card-bg-color: #2D402D; /* Darker card background for contrast */
-    --text-color: #DCE7DC; /* General text color */
-    --border-color: #4A6B4A; /* Darker green border for definition */
-    --input-bg-color: #3C503C; /* Slightly lighter input background */
-    --button-bg-color: #6AA66A; /* Brighter button green */
-    --button-text-color: #1A2A1A; /* Dark text for light buttons */
-    --success-color: #4CAF50;
-    --error-color: #E53935; /* Stronger red for errors */
-    --warning-color: #FFB300; /* Amber for warnings */
-    --info-color: #2196F3; /* Blue for info messages */
-
-    /* RGB values for rgba() colors for transparent overlays */
-    --card-bg-color-rgb: 45, 64, 45;
-    --accent-color-rgb: 85, 139, 85;
-    --primary-color-rgb: 220, 231, 220;
-    --button-bg-color-rgb: 106, 166, 106;
+/* Dark Green Theme (Default) */
+:root, [data-theme='dark-mode'] {
+    --primary-color: #4CAF50; /* Bright Green */
+    --accent-color: #81C784; /* Light Green */
+    --background-color: #121212; /* Dark Gray */
+    --card-bg-color: #1E1E1E; /* Slightly Lighter Gray */
+    --text-color: #E0E0E0; /* Light Gray */
+    --border-color: #333333; /* Dark Border */
+    --input-bg-color: #2C2C2C; /* Input Field Background */
+    --btn-primary-bg: #4CAF50;
+    --btn-primary-hover: #66BB6A;
+    --btn-secondary-bg: #333333;
+    --btn-secondary-hover: #444444;
+    --btn-danger-bg: #E53935;
+    --btn-danger-hover: #F44336;
+    --status-ok-color: #4CAF50;
+    --status-error-color: #F44336;
+    --status-connecting-color: #FB8C00;
 }
 
 /* Dark Mode (Default) - Explicitly defined for clarity, though it's the root default */
@@ -166,61 +162,55 @@ body {
     outline: none;
 }
 
-/* Button Styling */
+/* General Button Styling */
 .btn-primary, .btn-secondary, .btn-danger {
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.75rem;
-    font-weight: 600;
-    transition: all 0.08s ease-in-out;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    cursor: pointer;
+    transition: all 0.3s ease;
     border: none;
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .btn-primary {
-    background-color: var(--button-bg-color);
-    color: var(--button-text-color);
+    background-color: var(--btn-primary-bg);
 }
 .btn-primary:hover {
-    background-color: var(--accent-color);
-    transform: translateY(-0.5px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-.btn-primary:active {
-    transform: translateY(0.5px);
-    box-shadow: none;
+    background-color: var(--btn-primary-hover);
+    transform: translateY(-2px);
 }
 
 .btn-secondary {
-    background-color: var(--input-bg-color);
-    color: var(--primary-color);
-    border: 1px solid var(--border-color);
+    background-color: var(--btn-secondary-bg);
 }
 .btn-secondary:hover {
-    background-color: var(--border-color);
-    transform: translateY(-0.5px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-.btn-secondary:active {
-    transform: translateY(0.5px);
-    box-shadow: none;
+    background-color: var(--btn-secondary-hover);
 }
 
 .btn-danger {
-    background-color: var(--error-color);
-    color: white;
+    background-color: var(--btn-danger-bg);
 }
 .btn-danger:hover {
-    background-color: #C23A3A;
-    transform: translateY(-0.5px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    background-color: var(--btn-danger-hover);
+    transform: translateY(-2px);
 }
-.btn-danger:active {
-    transform: translateY(0.5px);
-    box-shadow: none;
+
+#status-indicator.connected {
+    background-color: var(--status-ok-color);
+    animation: none;
+}
+
+#status-indicator.disconnected {
+    background-color: var(--status-error-color);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
 }
 
 /* Navigation Buttons */
@@ -375,8 +365,36 @@ body {
     box-shadow: 0 0 0 3px rgba(var(--accent-color-rgb), 0.4);
 }
 
-/* Removed spinner-overlay - now only used for modals */
+/* Spinner Overlay */
+.spinner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(var(--card-bg-color-rgb), 0.95);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0.75rem;
+    z-index: 10;
+    backdrop-filter: blur(3px);
+}
 
+.spinner {
+    border: 4px solid var(--border-color);
+    border-top: 4px solid var(--accent-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 
 /* Modals */
 .modal {
@@ -547,7 +565,7 @@ header {
     header .space-x-4 {
         margin-top: 1rem;
         width: 100%;
-        justify-content: space-between; /* Adjusted to spread theme and logout buttons */
+        justify-content: space-between;
     }
     /* Mobile specific adjustments for logout and theme buttons */
     header .btn-danger { /* Logout button */
@@ -574,6 +592,6 @@ header {
     }
     header > div:first-child { /* The div containing the SVG and app title */
         width: 100%; /* Take full width on mobile */
-        justify-content: center; /* Center the title, if needed, or align left */
+        justify-content: center; /* Center the title */
     }
 }
