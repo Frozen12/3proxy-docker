@@ -1,89 +1,64 @@
-# Image page: <https://hub.docker.com/_/gcc>
-FROM gcc:13.2.0 as builder
+# Use a Python 3.9 Alpine base image for a smaller footprint
+FROM python:3.9-alpine
 
-# renovate: source=github-tags name=z3APA3A/3proxy
-ARG Z3PROXY_VERSION=0.9.4
+# Set environment variables for Rclone installation
+ENV DEBIAN_FRONTEND noninteractive
 
-# Fetch 3proxy sources
-RUN set -x \
-    && git -c advice.detachedHead=false clone --depth 1 --branch "${Z3PROXY_VERSION}" https://github.com/z3APA3A/3proxy.git /tmp/3proxy
+# Install necessary system dependencies for Alpine:
+# curl for downloading rclone, unzip for extracting
+RUN apk add --no-cache \
+    curl \
+    unzip \
+    # Clean up apk caches to reduce image size
+    && rm -rf /var/cache/apk/*
 
-WORKDIR /tmp/3proxy
+# Install rclone using the "current" link for the latest stable version
+RUN set -eux; \
+    # Download the latest rclone zip archive
+    curl -O https://downloads.rclone.org/rclone-current-linux-amd64.zip; \
+    \
+    # Create a temporary directory for extraction
+    mkdir -p /tmp/rclone-extracted; \
+    \
+    # Unzip the file into the temporary directory
+    unzip -q rclone-current-linux-amd64.zip -d /tmp/rclone-extracted/; \
+    \
+    # Find the extracted rclone executable (its path inside the zip can vary slightly)
+    # The find command is robust against changes in the extracted directory name (e.g., rclone-vX.Y.Z-linux-amd64)
+    find /tmp/rclone-extracted -type f -name "rclone" -exec mv {} /usr/bin/ \; ; \
+    \
+    # Clean up temporary files and directories
+    rm -rf rclone-current-linux-amd64.zip /tmp/rclone-extracted; \
+    \
+    # Make rclone executable
+    chmod +x /usr/bin/rclone; \
+    \
+    # Verify rclone installation
+    rclone version
 
-# Patch sources
-RUN set -x \
-    && echo '#define ANONYMOUS 1' >> ./src/3proxy.h \
-    # proxy.c source: <https://github.com/z3APA3A/3proxy/blob/0.9.3/src/proxy.c>
-    && sed -i 's~\(<\/head>\)~<style>:root{--color-bg-primary:#fff;--color-text-primary:#131313;--color-text-secondary:#232323}\
-@media (prefers-color-scheme: dark){:root{--color-bg-primary:#212121;--color-text-primary:#fafafa;--color-text-secondary:#bbb}}\
-html,body{height:100%;font-family:sans-serif;background-color:var(--color-bg-primary);color:var(--color-text-primary);margin:0;\
-padding:0;text-align:center}body{align-items:center;display:flex;justify-content:center;flex-direction:column;height:100vh}\
-h1,h2{margin-bottom:0;font-size:2.5em}h2::before{content:'"'"'Proxy error'"'"';display:block;font-size:.4em;\
-color:var(--color-text-secondary);font-weight:100}h3,p{color:var(--color-text-secondary)}</style>\1~' ./src/proxy.c \
-    && cat ./src/proxy.c | grep '</head>'
+# Set the working directory inside the container
+WORKDIR /app
 
-# And compile
-RUN set -x \
-    && echo "" >> ./Makefile.Linux \
-    && echo "PLUGINS = StringsPlugin TrafficPlugin PCREPlugin TransparentPlugin SSLPlugin" >> ./Makefile.Linux \
-    && echo "LIBS = -l:libcrypto.a -l:libssl.a -ldl" >> ./Makefile.Linux \
-    && make -f Makefile.Linux \
-    && strip ./bin/3proxy \
-    && strip ./bin/StringsPlugin.ld.so \
-    && strip ./bin/TrafficPlugin.ld.so \
-    && strip ./bin/PCREPlugin.ld.so \
-    && strip ./bin/TransparentPlugin.ld.so \
-    && strip ./bin/SSLPlugin.ld.so
+# Copy the application files into the container
+COPY requirements.txt .
+COPY app.py .
+COPY templates/ templates/
+COPY static/ static/
 
-# Prepare filesystem for 3proxy running
-FROM alpine:latest as buffer
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# create a directory for the future root filesystem
-WORKDIR /tmp/rootfs
+# Create necessary directories for rclone config (BASE_CONFIG_DIR).
+# Service accounts will now be extracted directly into BASE_CONFIG_DIR by app.py.
+ENV HOME /app
+RUN mkdir -p /app/.config/rclone/
 
-# prepare the root filesystem
-RUN set -x \
-    && mkdir -p ./etc ./bin ./usr/local/3proxy/libexec ./etc/3proxy \
-    && echo '3proxy:x:10001:10001::/nonexistent:/sbin/nologin' > ./etc/passwd \
-    && echo '3proxy:x:10001:' > ./etc/group \
-    && apk add --no-cache --virtual .build-deps curl ca-certificates \
-    && update-ca-certificates \
-    && curl -SsL -o ./bin/dumb-init "https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_$(arch)" \
-    && chmod +x ./bin/dumb-init \
-    && apk del .build-deps
+# Expose the port Flask will run on
+EXPOSE 5000
 
-COPY --from=builder /lib/*-linux-gnu/libdl.so.* ./lib/
-COPY --from=builder /tmp/3proxy/bin/3proxy ./bin/3proxy
-COPY --from=builder /tmp/3proxy/bin/*.ld.so ./usr/local/3proxy/libexec/
-COPY --from=ghcr.io/tarampampam/mustpl:0.1.1 /bin/mustpl ./bin/mustpl
-COPY 3proxy.cfg.json ./etc/3proxy/3proxy.cfg.json
-COPY 3proxy.cfg.mustach ./etc/3proxy/3proxy.cfg.mustach
-
-RUN chown -R 10001:10001 ./etc/3proxy
-
-# Merge into a single layer
-FROM busybox:stable-glibc
-
-LABEL \
-    org.opencontainers.image.title="3proxy" \
-    org.opencontainers.image.description="Tiny free proxy server" \
-    org.opencontainers.image.url="https://github.com/tarampampam/3proxy-docker" \
-    org.opencontainers.image.source="https://github.com/tarampampam/3proxy-docker" \
-    org.opencontainers.image.vendor="Tarampampam" \
-    org.opencontainers.image.licenses="WTFPL"
-
-# Import from builder
-COPY --from=buffer /tmp/rootfs /
-EXPOSE 3128
-# Use an unprivileged user
-USER 3proxy:3proxy
-
-ENTRYPOINT [ \
-    "/bin/mustpl", \
-    "-f", "/etc/3proxy/3proxy.cfg.json", \
-    "-o", "/etc/3proxy/3proxy.cfg", \
-    "/etc/3proxy/3proxy.cfg.mustach", \
-    "--", "/bin/dumb-init" \
-]
-
-CMD ["/bin/3proxy", "/etc/3proxy/3proxy.cfg"]
+# Command to run the application
+# Using Gunicorn for production deployment with Flask
+# --bind 0.0.0.0:${PORT} makes it listen on all interfaces and the port defined by Render
+# --workers determines how many concurrent requests can be handled (adjust based on resources)
+# --timeout increases the request timeout for potentially long Rclone operations
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "300", "app:app"]
