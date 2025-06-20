@@ -6,24 +6,28 @@ body {
     transition: background-color 0.3s, color 0.3s;
 }
 
-/* Dark Green Theme (Default) */
-:root, [data-theme='dark-mode'] {
-    --primary-color: #4CAF50; /* Bright Green */
-    --accent-color: #81C784; /* Light Green */
-    --background-color: #121212; /* Dark Gray */
-    --card-bg-color: #1E1E1E; /* Slightly Lighter Gray */
-    --text-color: #E0E0E0; /* Light Gray */
-    --border-color: #333333; /* Dark Border */
-    --input-bg-color: #2C2C2C; /* Input Field Background */
-    --btn-primary-bg: #4CAF50;
-    --btn-primary-hover: #66BB6A;
-    --btn-secondary-bg: #333333;
-    --btn-secondary-hover: #444444;
-    --btn-danger-bg: #E53935;
-    --btn-danger-hover: #F44336;
-    --status-ok-color: #4CAF50;
-    --status-error-color: #F44336;
-    --status-connecting-color: #FB8C00;
+/* Color Variables - Default Greenish White Monochromatic */
+:root {
+    /* Default Greenish White Monochromatic (Dark Mode) */
+    --primary-color: #DCE7DC; /* Lighter greenish-white for text */
+    --accent-color: #558B55; /* Muted vibrant green */
+    --bg-color: #1A2A1A; /* Dark background */
+    --card-bg-color: #2D402D; /* Darker card background for contrast */
+    --text-color: #DCE7DC; /* General text color */
+    --border-color: #4A6B4A; /* Darker green border for definition */
+    --input-bg-color: #3C503C; /* Slightly lighter input background */
+    --button-bg-color: #6AA66A; /* Brighter button green */
+    --button-text-color: #1A2A1A; /* Dark text for light buttons */
+    --success-color: #4CAF50;
+    --error-color: #E53935; /* Stronger red for errors */
+    --warning-color: #FFB300; /* Amber for warnings */
+    --info-color: #2196F3; /* Blue for info messages */
+
+    /* RGB values for rgba() colors for transparent overlays */
+    --card-bg-color-rgb: 45, 64, 45;
+    --accent-color-rgb: 85, 139, 85;
+    --primary-color-rgb: 220, 231, 220;
+    --button-bg-color-rgb: 106, 166, 106;
 }
 
 /* Dark Mode (Default) - Explicitly defined for clarity, though it's the root default */
@@ -52,7 +56,6 @@ body {
     --primary-color-rgb: 224, 224, 224;
     --button-bg-color-rgb: 76, 175, 80;
 }
-
 
 /* Additional Themes (Muted and Higher Contrast) */
 .theme-blue {
@@ -162,55 +165,61 @@ body {
     outline: none;
 }
 
-/* General Button Styling */
+/* Button Styling */
 .btn-primary, .btn-secondary, .btn-danger {
-    transition: all 0.3s ease;
-    border: none;
-    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
     font-weight: 600;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.08s ease-in-out;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    border: none;
 }
 
 .btn-primary {
-    background-color: var(--btn-primary-bg);
+    background-color: var(--button-bg-color);
+    color: var(--button-text-color);
 }
 .btn-primary:hover {
-    background-color: var(--btn-primary-hover);
-    transform: translateY(-2px);
+    background-color: var(--accent-color);
+    transform: translateY(-0.5px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+.btn-primary:active {
+    transform: translateY(0.5px);
+    box-shadow: none;
 }
 
 .btn-secondary {
-    background-color: var(--btn-secondary-bg);
+    background-color: var(--input-bg-color);
+    color: var(--primary-color);
+    border: 1px solid var(--border-color);
 }
 .btn-secondary:hover {
-    background-color: var(--btn-secondary-hover);
+    background-color: var(--border-color);
+    transform: translateY(-0.5px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+.btn-secondary:active {
+    transform: translateY(0.5px);
+    box-shadow: none;
 }
 
 .btn-danger {
-    background-color: var(--btn-danger-bg);
+    background-color: var(--error-color);
+    color: white;
 }
 .btn-danger:hover {
-    background-color: var(--btn-danger-hover);
-    transform: translateY(-2px);
+    background-color: #C23A3A;
+    transform: translateY(-0.5px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
-
-#status-indicator.connected {
-    background-color: var(--status-ok-color);
-    animation: none;
-}
-
-#status-indicator.disconnected {
-    background-color: var(--status-error-color);
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
+.btn-danger:active {
+    transform: translateY(0.5px);
+    box-shadow: none;
 }
 
 /* Navigation Buttons */
@@ -225,6 +234,8 @@ body {
     transition: background-color 0.08s, color 0.08s, transform 0.05s;
     display: flex;
     align-items: center;
+    justify-content: flex-start;
+    position: relative;
 }
 .nav-button:hover {
     background-color: var(--input-bg-color);
@@ -242,6 +253,11 @@ body {
     transform: none;
 }
 
+/* Tab spinner positioning */
+.nav-button .fa-spinner {
+    margin-left: auto;
+}
+
 /* Output Areas */
 .output-area {
     background-color: var(--input-bg-color);
@@ -257,6 +273,7 @@ body {
     color: var(--primary-color);
     max-height: 500px;
     box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    scroll-behavior: smooth;
 }
 
 .major-steps-output {
@@ -365,37 +382,6 @@ body {
     box-shadow: 0 0 0 3px rgba(var(--accent-color-rgb), 0.4);
 }
 
-/* Spinner Overlay */
-.spinner-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(var(--card-bg-color-rgb), 0.95);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    border-radius: 0.75rem;
-    z-index: 10;
-    backdrop-filter: blur(3px);
-}
-
-.spinner {
-    border: 4px solid var(--border-color);
-    border-top: 4px solid var(--accent-color);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
 /* Modals */
 .modal {
     position: fixed;
@@ -477,42 +463,37 @@ select.custom-select {
     background-position: right 0.75rem center;
     background-size: 1.25rem;
     padding-right: 2.5rem;
-    color: var(--text-color); /* Ensure text color is inherited */
+    color: var(--text-color);
 }
 
 /* Styles for options within the custom select dropdown */
 select.custom-select option {
-    background-color: var(--input-bg-color); /* Background for all options */
-    color: var(--text-color); /* Text color for all options */
-    padding: 0.5rem 1rem; /* Padding for better spacing */
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+    padding: 0.5rem 1rem;
     transition: background-color 0.15s ease, color 0.15s ease, font-size 0.15s ease;
 }
 
 /* Alternating background for dropdown options */
 select.custom-select option:nth-child(even) {
-    background-color: var(--card-bg-color); /* Slightly different background for even options */
+    background-color: var(--card-bg-color);
 }
 
 /* Hover effect for dropdown options */
 select.custom-select option:hover,
-select.custom-select option:checked { /* also apply to selected option for consistency */
+select.custom-select option:checked {
     background-color: var(--accent-color);
     color: var(--button-text-color);
-    font-size: 1.05em; /* Slightly bigger font on hover/selected */
+    font-size: 1.05em;
 }
 
 .app-title {
-    font-family: 'Montserrat', sans-serif; /* Semi-formal font */
+    font-family: 'Montserrat', sans-serif;
     font-weight: 700;
     background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-size: 2.5rem; /* Slightly bigger */
-}
-@media (max-width: 768px) {
-    .app-title {
-        font-size: 2.2rem; /* Adjusted title size for mobile */
-    }
+    font-size: 2.5rem;
 }
 
 /* Header behavior */
@@ -526,8 +507,15 @@ select.custom-select option:checked { /* also apply to selected option for consi
 }
 header {
     transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-    background-color: rgba(var(--card-bg-color-rgb), 0.98); /* Increased opacity for theme dropdown */
+    background-color: rgba(var(--card-bg-color-rgb), 0.98);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Theme dropdown with increased opacity for mobile accessibility */
+#themeDropdown {
+    background-color: rgba(var(--card-bg-color-rgb), 0.98) !important;
+    backdrop-filter: blur(8px);
+    border: 2px solid var(--border-color);
 }
 
 /* For better mobile experience */
@@ -558,40 +546,114 @@ header {
         margin-left: 0;
         margin-top: 0.5rem;
     }
-    header .flex-wrap {
+    
+    /* Fixed mobile header layout */
+    header {
+        padding: 1rem;
+    }
+    
+    header .flex {
         flex-direction: column;
-        align-items: flex-start;
-    }
-    header .space-x-4 {
-        margin-top: 1rem;
+        align-items: center;
         width: 100%;
-        justify-content: space-between;
     }
-    /* Mobile specific adjustments for logout and theme buttons */
-    header .btn-danger { /* Logout button */
-        padding: 0.5rem 1rem; /* Smaller padding */
-        font-size: 0.8rem; /* Smaller font size */
-        width: auto; /* Allow content to dictate width */
+    
+    header .flex:first-child {
+        margin-bottom: 1rem;
     }
-    header .btn-secondary { /* Theme button */
-        padding: 0.5rem 1rem; /* Smaller padding */
-        font-size: 0.8rem; /* Smaller font size */
-        width: auto; /* Allow content to dictate width */
-    }
-    header .items-center { /* Container for theme and logout buttons */
+    
+    header .ml-auto {
+        margin-left: 0 !important;
         display: flex;
-        flex-direction: row; /* Keep them in a row */
-        justify-content: flex-end; /* Align to the right */
-        width: 100%;
-        margin-top: 1rem; /* Add some margin from the title */
-    }
-    header .app-title {
-        font-size: 2.5rem; /* Relatively larger on mobile header */
-        text-align: left;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
         width: 100%;
     }
-    header > div:first-child { /* The div containing the SVG and app title */
-        width: 100%; /* Take full width on mobile */
-        justify-content: center; /* Center the title */
+    
+    /* Theme dropdown positioning for mobile */
+    #themeDropdown {
+        position: fixed !important;
+        top: auto !important;
+        bottom: 1rem !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        right: auto !important;
+        margin: 0 !important;
+        width: 90vw !important;
+        max-width: 300px !important;
+        opacity: 0.98 !important;
+        z-index: 1001 !important;
+    }
+    
+    /* Mobile specific adjustments for logout and theme buttons */
+    header .btn-danger,
+    header .btn-secondary {
+        padding: 0.75rem 1.25rem;
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+    
+    .app-title {
+        font-size: 2rem;
+        text-align: center;
+        width: 100%;
+    }
+    
+    /* Navigation button improvements for mobile */
+    .nav-button {
+        padding: 0.875rem 1.25rem;
+        font-size: 0.95rem;
+    }
+    
+    /* Output area improvements for mobile */
+    .output-area {
+        font-size: 0.8rem;
+        max-height: 300px;
+    }
+    
+    /* Grid layout improvements for mobile */
+    .grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+    
+    /* Serve mode fields stacking for mobile */
+    #source-field-container .input-field,
+    #source-field-container .custom-select {
+        margin-bottom: 0.75rem;
+    }
+    
+    #source-field-container .input-field:last-child,
+    #source-field-container .custom-select:last-child {
+        margin-bottom: 0;
+    }
+}
+
+/* Tablet specific adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .app-title {
+        font-size: 2.2rem;
+    }
+    
+    header .ml-auto {
+        gap: 0.75rem;
+    }
+    
+    header .btn-danger,
+    header .btn-secondary {
+        padding: 0.625rem 1rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1025px) {
+    .app-title {
+        font-size: 2.5rem;
+    }
+    
+    .output-area {
+        max-height: 600px;
     }
 }

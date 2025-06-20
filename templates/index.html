@@ -10,9 +10,17 @@
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
-</head>```
-<body class="flex flex-col min-h-screen" data-theme="dark-mode">
-```    <!-- Header -->
+    
+    <!-- Apply theme immediately to prevent flash -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark-mode';
+            document.documentElement.className = savedTheme;
+        })();
+    </script>
+</head>
+<body class="flex flex-col min-h-screen">
+    <!-- Header -->
     <header class="bg-card-bg-color p-4 shadow-md flex flex-wrap justify-between items-center rounded-b-xl sticky top-0 z-10 border-b border-border-color">
         <div class="flex items-center">
             <!-- Updated Favicon SVG -->
@@ -21,19 +29,16 @@
                 <polyline points="12 15 12 9 9 12"/>
                 <polyline points="12 9 15 12 12 15"/>
             </svg>
-            ```
-<h1 class="text-3xl font-bold app-title">Rclone WebGUI</h1>
-            <div id="status-indicator" class="w-4 h-4 rounded-full ml-3 bg-gray-400 animate-pulse" title="Connecting to server..."></div>
-```       </div>
-        <div class="flex items-center space-x-4 mt-2 md:mt-0 ml-auto"> <!-- Added ml-auto to push to right -->
-            <!-- Theme Changer Dropdown -->
+            <h1 class="text-3xl font-bold app-title">Rclone WebGUI</h1>
+        </div>
+        <div class="flex items-center space-x-4 mt-2 md:mt-0 ml-auto">
+            <!-- Theme Changer Dropdown with increased opacity -->
             <div class="relative inline-block text-left">
                 <button type="button" id="themeChangerBtn" class="btn-secondary px-4 py-2 rounded-lg text-sm font-medium focus:outline-none flex items-center">
                     <i class="fas fa-palette mr-2"></i> Themes
                 </button>
-                ```
-<div id="themeDropdown" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card-bg-color ring-1 ring-border-color ring-opacity-5 focus:outline-none hidden" style="opacity: 0.95;" role="menu" aria-orientation="vertical" aria-labelledby="themeChangerBtn">
-```                    <div class="py-1" role="none">
+                <div id="themeDropdown" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card-bg-color ring-1 ring-border-color ring-opacity-5 focus:outline-none hidden opacity-95" role="menu" aria-orientation="vertical" aria-labelledby="themeChangerBtn">
+                    <div class="py-1" role="none">
                         <a href="#" class="block px-4 py-2 text-sm text-text-color hover:bg-input-bg-color rounded-md mx-1 my-0.5" data-theme="dark-mode">Dark Green (Default)</a>
                         <a href="#" class="block px-4 py-2 text-sm text-text-color hover:bg-input-bg-color rounded-md mx-1 my-0.5" data-theme="black-mode">Black</a>
                         <a href="#" class="block px-4 py-2 text-sm text-text-color hover:bg-input-bg-color rounded-md mx-1 my-0.5" data-theme="theme-blue">Blue</a>
@@ -60,9 +65,16 @@
             <nav class="card p-4 rounded-xl shadow-md">
                 <ul class="space-y-3">
                     <li><button onclick="showSection('setup')" class="nav-button"><i class="fas fa-cog mr-2"></i> Setup</button></li>
-                    ```
-<button onclick="showSection('rclone-transfer')" class="nav-button active"><i class="fas fa-exchange-alt mr-2"></i> Rclone</button></li>
-```                    <li><button onclick="showSection('web-terminal')" class="nav-button"><i class="fas fa-terminal mr-2"></i> Web Terminal</button></li>
+                    <li><button onclick="showSection('rclone-transfer')" class="nav-button active">
+                        <i class="fas fa-exchange-alt mr-2"></i> 
+                        <span>Rclone Transfer</span>
+                        <i id="rclone-tab-spinner" class="fas fa-spinner fa-spin ml-2 hidden text-accent-color"></i>
+                    </button></li>
+                    <li><button onclick="showSection('web-terminal')" class="nav-button">
+                        <i class="fas fa-terminal mr-2"></i> 
+                        <span>Web Terminal</span>
+                        <i id="terminal-tab-spinner" class="fas fa-spinner fa-spin ml-2 hidden text-accent-color"></i>
+                    </button></li>
                     <li><button onclick="showSection('recent-commands')" class="nav-button"><i class="fas fa-history mr-2"></i> Recent Commands</button></li>
                     <li><button onclick="showSection('notepad')" class="nav-button"><i class="fas fa-clipboard mr-2"></i> Notepad</button></li>
                 </ul>
@@ -103,9 +115,9 @@
 
             <!-- Rclone Transfer Section -->
             <div id="rclone-transfer-section" class="content-section card p-6 rounded-xl shadow-md active">
-                ```
-<h2 class="text-2xl font-bold mb-4 text-primary-color flex items-center"><i class="fas fa-exchange-alt mr-3"></i> Rclone</h2>
-```                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-primary-color flex items-center"><i class="fas fa-exchange-alt mr-3"></i> Rclone Transfer</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div>
                         <label for="mode" class="block text-sm font-bold mb-2 text-primary-color">Rclone Mode</label>
                         <select id="mode" class="input-field w-full p-3 rounded-lg custom-select">
@@ -124,7 +136,6 @@
                             <option value="serve" data-description="Serve a remote over HTTP/WebDAV/FTP/etc.">serve</option>
                             <option value="dedupe" data-description="Remove duplicate files.">dedupe</option>
                             <option value="cleanup" data-description="Clean up the remote.">cleanup</option>
-                            <!-- <option value="checksum" data-description="Check files checksums.">checksum</option> --> <!-- Removed as per request -->
                             <option value="delete" data-description="Remove files in the path.">delete</option>
                             <option value="deletefile" data-description="Remove a single file from remote.">deletefile</option>
                             <option value="purge" data-description="Remove all content in the path.">purge</option>
@@ -137,34 +148,35 @@
 
                     <div class="relative" id="source-field-container">
                         <label for="source" id="source-label" class="block text-sm font-bold mb-2 text-primary-color">Source Path</label>
-                        ```
-<input type="text" id="source" class="input-field w-full p-3 rounded-lg" placeholder="e.g., remote:path/to/source">
-```                       <!-- URL input field for copyurl mode, hidden by default -->
+                        <input type="text" id="source" class="input-field w-full p-3 rounded-lg" value="">
+                        <!-- URL input field for copyurl mode, hidden by default -->
                         <input type="text" id="url-input" class="input-field w-full p-3 rounded-lg hidden" placeholder="Enter URL">
                         <!-- Serve Protocol dropdown for serve mode, hidden by default -->
-                        <select id="serve-protocol-select" class="input-field w-full p-3 rounded-lg custom-select hidden">
+                        <select id="serve-protocol-select" class="input-field w-full p-3 rounded-lg custom-select hidden mb-3">
                             <option value="http">HTTP</option>
                             <option value="webdav">WebDAV</option>
                             <option value="ftp">FTP</option>
                             <option value="sftp">SFTP</option>
                             <option value="dlna">DLNA</option>
                         </select>
+                        <!-- Serve Port input for serve mode, hidden by default -->
+                        <input type="text" id="serve-port-input" class="input-field w-full p-3 rounded-lg hidden mb-3" placeholder="Port (default: 8080)" value="8080">
+                        <!-- Serve Path input for serve mode, hidden by default -->
+                        <input type="text" id="serve-path-input" class="input-field w-full p-3 rounded-lg hidden" placeholder="Base URL path (default: /)" value="/">
                     </div>
                 </div>
 
                 <div class="mb-6">
                     <div id="destination-field">
                         <label for="destination" class="block text-sm font-bold mb-2 text-primary-color">Destination Path</label>
-                        ```
-<input type="text" id="destination" class="input-field w-full p-3 rounded-lg" placeholder="e.g., remote:path/to/destination">
-```                   </div>
+                        <input type="text" id="destination" class="input-field w-full p-3 rounded-lg" value="">
+                    </div>
                 </div>
 
                 <div class="mb-6">
                     <label for="additional_flags" class="block text-sm font-bold mb-2 text-primary-color">Additional Flags</label>
-                    ```
-<input type="text" id="additional_flags" class="input-field w-full p-3 rounded-lg" placeholder="e.g., --fast-list --drive-chunk-size 64M">
-```                </div>
+                    <input type="text" id="additional_flags" class="input-field w-full p-3 rounded-lg" value="--azureblob-env-auth --crypt-pass-bad-blocks">
+                </div>
 
                 <!-- Sliders and Dropdowns -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -228,22 +240,14 @@
 
                 <!-- Control Buttons -->
                 <div class="flex flex-wrap gap-4 justify-center mb-6">
-                    ```
-<button id="execute-button" onclick="executeRcloneCommand()" class="btn-primary w-full md:w-auto"><i class="fas fa-play mr-2"></i> Start</button>
-```                    <button id="stop-rclone-btn" class="btn-danger w-full md:w-auto flex-1 hidden"><i class="fas fa-stop mr-2"></i> Stop Rclone Transfer</button>
-                    ```
-<button onclick="downloadLog('rclone')" class="btn-secondary"><i class="fas fa-download mr-2"></i> Download</button>
-```                    ```
-<button onclick="clearOutput('rclone')" class="btn-secondary"><i class="fas fa-eraser mr-2"></i> Clear</button>
-```<!-- New Clear Output button -->
+                    <button id="start-rclone-btn" class="btn-primary w-full md:w-auto flex-1"><i class="fas fa-play mr-2"></i> Start Rclone Transfer</button>
+                    <button id="stop-rclone-btn" class="btn-danger w-full md:w-auto flex-1 hidden"><i class="fas fa-stop mr-2"></i> Stop Rclone Transfer</button>
+                    <button onclick="downloadLogs()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-download mr-2"></i> Download Rclone Log</button>
+                    <button onclick="clearRcloneOutput()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-eraser mr-2"></i> Clear Output</button>
                 </div>
 
                 <!-- Rclone Live Output -->
                 <div class="relative">
-                    <div id="rclone-spinner" class="spinner-overlay hidden">
-                        <div class="spinner"></div>
-                        <p class="mt-3 text-primary-color text-lg font-medium" id="rclone-spinner-text">Transferring...</p>
-                    </div>
                     <pre id="rcloneLiveOutput" class="output-area min-h-[200px]"></pre>
                 </div>
                 <p id="rclone-major-steps" class="major-steps-output mt-4"></p>
@@ -261,23 +265,16 @@
                 <div class="flex flex-wrap gap-4 justify-center mb-6">
                     <button id="execute-terminal-btn" class="btn-primary w-full md:w-auto flex-1"><i class="fas fa-play mr-2"></i> Execute Command</button>
                     <button id="stop-terminal-btn" class="btn-danger w-full md:w-auto flex-1 hidden"><i class="fas fa-stop mr-2"></i> Stop Process</button>
-                    ```
-<button onclick="clearOutput('terminal')" class="btn-secondary"><i class="fas fa-eraser mr-2"></i> Clear</button>
-```                    ```
-<button onclick="downloadLog('terminal')" class="btn-secondary"><i class="fas fa-download mr-2"></i> Download</button>
-```<!-- New Download Terminal Log button -->
+                    <button onclick="clearTerminalOutput()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-eraser mr-2"></i> Clear Output</button>
+                    <button onclick="downloadTerminalLogs()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-download mr-2"></i> Download Terminal Log</button>
                 </div>
 
                 <div class="relative">
-                    <div id="terminal-spinner" class="spinner-overlay hidden">
-                        <div class="spinner"></div>
-                        <p class="mt-3 text-primary-color text-lg font-medium" id="terminal-spinner-text">Executing command...</p>
-                    </div>
                     <pre id="terminalOutput" class="output-area min-h-[300px]"></pre>
                 </div>
             </div>
 
-            <!-- Recent Commands Section (formerly Modal) -->
+            <!-- Recent Commands Section -->
             <div id="recent-commands-section" class="content-section card p-6 rounded-xl shadow-md hidden">
                 <h2 class="text-2xl font-bold mb-4 text-primary-color flex items-center"><i class="fas fa-history mr-3"></i> Recent Commands</h2>
 
