@@ -23,15 +23,11 @@
     <!-- Header -->
     <header class="bg-card-bg-color p-4 shadow-md flex flex-wrap justify-between items-center rounded-b-xl sticky top-0 z-10 border-b border-border-color">
         <div class="flex items-center">
-            <!-- Updated Favicon SVG -->
-            <svg class="h-8 w-8 text-accent-color mr-3" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 10h-1.26A8 8 0 1 0 3 14.31V14a4 4 0 0 0 4 4h11a4 4 0 0 0 0-8z"/>
-                <polyline points="12 15 12 9 9 12"/>
-                <polyline points="12 9 15 12 12 15"/>
-            </svg>
+            <!-- Favicon as Logo -->
+            <img src="{{ url_for('static', filename='favicon.svg') }}" alt="Rclone WebGUI Logo" class="h-8 w-8 text-accent-color mr-3">
             <h1 class="text-3xl font-bold app-title">Rclone WebGUI</h1>
         </div>
-        <div class="flex items-center space-x-4 mt-2 md:mt-0 ml-auto">
+        <div class="flex items-center space-x-4 mt-2 md:mt-0 ml-auto mobile-header-buttons">
             <!-- Theme Changer Dropdown with increased opacity -->
             <div class="relative inline-block text-left">
                 <button type="button" id="themeChangerBtn" class="btn-secondary px-4 py-2 rounded-lg text-sm font-medium focus:outline-none flex items-center">
@@ -152,6 +148,7 @@
                         <!-- URL input field for copyurl mode, hidden by default -->
                         <input type="text" id="url-input" class="input-field w-full p-3 rounded-lg hidden" placeholder="Enter URL">
                         <!-- Serve Protocol dropdown for serve mode, hidden by default -->
+                        <label for="serve-protocol-select" class="block text-sm font-bold mb-2 text-primary-color hidden" id="serve-protocol-label">Protocol</label>
                         <select id="serve-protocol-select" class="input-field w-full p-3 rounded-lg custom-select hidden mb-3">
                             <option value="http">HTTP</option>
                             <option value="webdav">WebDAV</option>
@@ -240,8 +237,8 @@
 
                 <!-- Control Buttons -->
                 <div class="flex flex-wrap gap-4 justify-center mb-6">
-                    <button id="start-rclone-btn" class="btn-primary w-full md:w-auto flex-1"><i class="fas fa-play mr-2"></i> Start Rclone Transfer</button>
-                    <button id="stop-rclone-btn" class="btn-danger w-full md:w-auto flex-1 hidden"><i class="fas fa-stop mr-2"></i> Stop Rclone Transfer</button>
+                    <button id="start-rclone-btn" class="btn-primary w-full md:w-auto flex-1"><i class="fas fa-play mr-2"></i> Start</button>
+                    <button id="stop-rclone-btn" class="btn-danger w-full md:w-auto flex-1 hidden"><i class="fas fa-stop mr-2"></i> Stop</button>
                     <button onclick="downloadLogs()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-download mr-2"></i> Download Rclone Log</button>
                     <button onclick="clearRcloneOutput()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-eraser mr-2"></i> Clear Output</button>
                 </div>
@@ -263,8 +260,9 @@
                 </div>
 
                 <div class="flex flex-wrap gap-4 justify-center mb-6">
-                    <button id="execute-terminal-btn" class="btn-primary w-full md:w-auto flex-1"><i class="fas fa-play mr-2"></i> Execute Command</button>
+                    <button id="execute-terminal-btn" class="btn-primary w-full md:w-auto flex-1"><i class="fas fa-play mr-2"></i> Start</button>
                     <button id="stop-terminal-btn" class="btn-danger w-full md:w-auto flex-1 hidden"><i class="fas fa-stop mr-2"></i> Stop Process</button>
+                    <button id="terminal-history-btn" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-history mr-2"></i> History</button>
                     <button onclick="clearTerminalOutput()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-eraser mr-2"></i> Clear Output</button>
                     <button onclick="downloadTerminalLogs()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-download mr-2"></i> Download Terminal Log</button>
                 </div>
@@ -313,6 +311,21 @@
             <div class="flex justify-end space-x-4">
                 <button id="confirmStopAndStartBtn" class="btn-danger"><i class="fas fa-stop mr-2"></i> Stop and Start New</button>
                 <button id="cancelStopAndStartBtn" class="btn-secondary"><i class="fas fa-times-circle mr-2"></i> Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Terminal History Modal -->
+    <div id="terminalHistoryModal" class="modal hidden">
+        <div class="modal-content card rounded-xl p-8 shadow-2xl">
+            <h2 class="text-2xl font-bold mb-4 text-primary-color flex items-center">
+                <i class="fas fa-history mr-3"></i> Terminal Command History
+            </h2>
+            <div id="terminalHistoryContent" class="space-y-3 max-h-96 overflow-y-auto mb-6">
+                <!-- History items will be loaded here -->
+            </div>
+            <div class="flex justify-end">
+                <button id="closeTerminalHistoryModal" class="btn-secondary"><i class="fas fa-times-circle mr-2"></i> Close</button>
             </div>
         </div>
     </div>

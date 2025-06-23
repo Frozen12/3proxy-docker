@@ -53,6 +53,10 @@ const terminalConfirmModal = document.getElementById('terminalConfirmModal');
 const terminalConfirmMessage = document.getElementById('terminalConfirmMessage');
 const confirmStopAndStartBtn = document.getElementById('confirmStopAndStartBtn');
 const cancelStopAndStartBtn = document.getElementById('cancelStopAndStartBtn');
+const terminalHistoryBtn = document.getElementById('terminal-history-btn');
+const terminalHistoryModal = document.getElementById('terminalHistoryModal');
+const terminalHistoryContent = document.getElementById('terminalHistoryContent');
+const closeTerminalHistoryModal = document.getElementById('closeTerminalHistoryModal');
 
 const recentRcloneTransfersDiv = document.getElementById('recentRcloneTransfers');
 const recentTerminalCommandsDiv = document.getElementById('recentTerminalCommands');
@@ -63,15 +67,12 @@ const notepadContent = document.getElementById('notepad-content');
 let rclonePollingInterval = null;
 let terminalPollingInterval = null;
 let processStatePollingInterval = null;
-let isRcloneProcessRunning = false;
-let isTerminalProcessRunning = false;
-let pendingTerminalCommand = null;
-
-// Auto-scrolling state
 let rcloneAutoScrollEnabled = true;
 let terminalAutoScrollEnabled = true;
 let rcloneUserScrolledUp = false;
 let terminalUserScrolledUp = false;
+let pendingTerminalCommand = null;
+let terminalCommandHistory = []; // For client-side history display
 
 // For header scroll behavior
 let lastScrollY = 0;
@@ -120,31 +121,25 @@ async function checkProcessStates() {
         const states = await response.json();
         
         // Update Rclone button state
-        if (states.rclone.running !== isRcloneProcessRunning) {
-            isRcloneProcessRunning = states.rclone.running;
-            if (isRcloneProcessRunning) {
-                startRcloneBtn.classList.add('hidden');
-                stopRcloneBtn.classList.remove('hidden');
-                showRcloneSpinner("Command running...");
-            } else {
-                startRcloneBtn.classList.remove('hidden');
-                stopRcloneBtn.classList.add('hidden');
-                hideRcloneSpinner();
-            }
+        if (states.rclone.running) {
+            startRcloneBtn.classList.add('hidden');
+            stopRcloneBtn.classList.remove('hidden');
+            showRcloneSpinner("Command running...");
+        } else {
+            startRcloneBtn.classList.remove('hidden');
+            stopRcloneBtn.classList.add('hidden');
+            hideRcloneSpinner();
         }
         
         // Update Terminal button state
-        if (states.terminal.running !== isTerminalProcessRunning) {
-            isTerminalProcessRunning = states.terminal.running;
-            if (isTerminalProcessRunning) {
-                executeTerminalBtn.classList.add('hidden');
-                stopTerminalBtn.classList.remove('hidden');
-                showTerminalSpinner("Command running...");
-            } else {
-                executeTerminalBtn.classList.remove('hidden');
-                stopTerminalBtn.classList.add('hidden');
-                hideTerminalSpinner();
-            }
+        if (states.terminal.running) {
+            executeTerminalBtn.classList.add('hidden');
+            stopTerminalBtn.classList.remove('hidden');
+            showTerminalSpinner("Command running...");
+        } else {
+            executeTerminalBtn.classList.remove('hidden');
+            stopTerminalBtn.classList.add('hidden');
+            hideTerminalSpinner();
         }
     } catch (error) {
         console.error("Error checking process states:", error);
@@ -166,12 +161,10 @@ function stopProcessStatePolling() {
 }
 
 // --- Auto-scrolling Functions ---
-function setupAutoScrolling(outputElement, autoScrollEnabledVar, userScrolledUpVar) {
-    let isAtBottom = true;
-    
+function setupAutoScrolling(outputElement) {
     outputElement.addEventListener('scroll', () => {
         const threshold = 50; // pixels from bottom
-        isAtBottom = outputElement.scrollTop + outputElement.clientHeight >= outputElement.scrollHeight - threshold;
+        const isAtBottom = outputElement.scrollTop + outputElement.clientHeight >= outputElement.scrollHeight - threshold;
         
         if (outputElement === rcloneLiveOutput) {
             rcloneUserScrolledUp = !isAtBottom;
@@ -179,15 +172,14 @@ function setupAutoScrolling(outputElement, autoScrollEnabledVar, userScrolledUpV
             terminalUserScrolledUp = !isAtBottom;
         }
     });
-    
-    return {
-        scrollToBottom: () => {
-            if (isAtBottom || (!rcloneUserScrolledUp && outputElement === rcloneLiveOutput) || (!terminalUserScrolledUp && outputElement === terminalOutput)) {
-                outputElement.scrollTop = outputElement.scrollHeight;
-            }
-        },
-        isAtBottom: () => isAtBottom
-    };
+}
+
+function autoScroll(element) {
+    if (element === rcloneLiveOutput && !rcloneUserScrolledUp) {
+        element.scrollTop = element.scrollHeight;
+    } else if (element === terminalOutput && !terminalUserScrolledUp) {
+        element.scrollTop = element.scrollHeight;
+    }
 }
 
 // --- UI Toggling Functions ---
@@ -235,12 +227,14 @@ function showRcloneSpinner(message = "Transferring...") {
     if (rcloneSpinner) {
         rcloneSpinner.classList.remove('hidden');
     }
+    document.getElementById('rclone-tab-spinner').classList.remove('hidden');
 }
 
 function hideRcloneSpinner() {
     if (rcloneSpinner) {
         rcloneSpinner.classList.add('hidden');
     }
+    document.getElementById('rclone-tab-spinner').classList.add('hidden');
 }
 
 function showTerminalSpinner(message = "Executing command...") {
@@ -250,12 +244,14 @@ function showTerminalSpinner(message = "Executing command...") {
     if (terminalSpinner) {
         terminalSpinner.classList.remove('hidden');
     }
+    document.getElementById('terminal-tab-spinner').classList.remove('hidden');
 }
 
 function hideTerminalSpinner() {
     if (terminalSpinner) {
         terminalSpinner.classList.add('hidden');
     }
+    document.getElementById('terminal-tab-spinner').classList.add('hidden');
 }
 
 // --- Header Scroll Behavior ---
@@ -304,7 +300,10 @@ function toggleRemoteField() {
     if (serveProtocolSelect) serveProtocolSelect.classList.add('hidden');
     if (servePortInput) servePortInput.classList.add('hidden');
     if (servePathInput) servePathInput.classList.add('hidden');
-    if (sourceLabel) sourceLabel.textContent = 'Source Path';
+    if (sourceLabel) sourceLabel.textContent = 'Source Path'; // Reset label text
+    if (sourceLabel) sourceLabel.classList.remove('hidden'); // Ensure label is visible by default
+    const serveProtocolLabel = document.getElementById('serve-protocol-label');
+    if (serveProtocolLabel) serveProtocolLabel.classList.add('hidden'); // Hide protocol label by default
 
     // Reset required attributes
     if (sourceInput) sourceInput.removeAttribute('required');
@@ -337,6 +336,7 @@ function toggleRemoteField() {
         if (sourceLabel) sourceLabel.textContent = 'Path/Remote';
     } else if (modesServe.includes(selectedMode)) {
         if (serveProtocolSelect) serveProtocolSelect.classList.remove('hidden');
+        if (serveProtocolLabel) serveProtocolLabel.classList.remove('hidden'); // Show protocol label
         if (servePortInput) servePortInput.classList.remove('hidden');
         if (servePathInput) servePathInput.classList.remove('hidden');
         if (sourceInput) {
@@ -350,6 +350,7 @@ function toggleRemoteField() {
         if (destinationField) destinationField.classList.add('hidden');
         if (sourceInput) sourceInput.removeAttribute('required');
         if (destinationInput) destinationInput.removeAttribute('required');
+        if (sourceLabel) sourceLabel.classList.add('hidden'); // Hide label for no-args modes
     }
 }
 
@@ -396,11 +397,6 @@ function uploadSaZip() {
 
 // --- Rclone Transfer Logic ---
 async function startRcloneTransfer() {
-    if (isRcloneProcessRunning) {
-        logMessage(rcloneMajorStepsOutput, "Rclone process is already running. Please stop it first.", 'warning');
-        return;
-    }
-
     const mode = modeSelect.value;
     let source = '';
     const destination = destinationInput ? destinationInput.value.trim() : '';
@@ -446,7 +442,6 @@ async function startRcloneTransfer() {
     if (rcloneLiveOutput) rcloneLiveOutput.textContent = '';
     logMessage(rcloneMajorStepsOutput, 'Initializing Rclone transfer...', 'info');
     showRcloneSpinner();
-    isRcloneProcessRunning = true;
     if (startRcloneBtn) startRcloneBtn.classList.add('hidden');
     if (stopRcloneBtn) stopRcloneBtn.classList.remove('hidden');
 
@@ -477,77 +472,28 @@ async function startRcloneTransfer() {
             body: JSON.stringify(payload),
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            logMessage(rcloneMajorStepsOutput, `Error: ${errorData.message}`, 'error');
+        const result = await response.json();
+        if (result.status === 'success') {
+            logMessage(rcloneMajorStepsOutput, result.message, 'success');
+            startRclonePolling();
+            // saveRcloneTransferToHistory is now handled by backend
+        } else {
+            logMessage(rcloneMajorStepsOutput, `Error: ${result.message}`, 'error');
             resetRcloneButtons();
-            return;
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let buffer = '';
-
-        while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-
-            let newlineIndex;
-            while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
-                const line = buffer.substring(0, newlineIndex);
-                buffer = buffer.substring(newlineIndex + 1);
-
-                if (line.trim()) {
-                    try {
-                        const data = JSON.parse(line);
-                        if (data.status === 'progress') {
-                            appendOutput(rcloneLiveOutput, data.output);
-                        } else if (data.status === 'complete') {
-                            logMessage(rcloneMajorStepsOutput, data.message, 'success');
-                            appendOutput(rcloneLiveOutput, '\n--- Rclone Command Finished (Success) ---\n');
-                            appendOutput(rcloneLiveOutput, data.output, 'success');
-                            saveRcloneTransferToHistory(mode, source, destination, 'Success');
-                        } else if (data.status === 'error') {
-                            logMessage(rcloneMajorStepsOutput, `Error: ${data.message}`, 'error');
-                            appendOutput(rcloneLiveOutput, '\n--- Rclone Command Finished (Error) ---\n');
-                            appendOutput(rcloneLiveOutput, data.output, 'error');
-                            saveRcloneTransferToHistory(mode, source, destination, 'Failed');
-                        } else if (data.status === 'stopped') {
-                            logMessage(rcloneMajorStepsOutput, data.message, 'info');
-                            appendOutput(rcloneLiveOutput, '\n--- Rclone Command Stopped by User ---\n');
-                            saveRcloneTransferToHistory(mode, source, destination, 'Stopped');
-                        }
-                    } catch (parseError) {
-                        // Handle non-JSON lines or partial JSON
-                        console.warn('Could not parse JSON line:', line, parseError);
-                    }
-                }
-            }
         }
     } catch (error) {
         logMessage(rcloneMajorStepsOutput, `Network or Rclone execution error: ${error.message}`, 'error');
-        appendOutput(rcloneLiveOutput, `\nError during stream: ${error.message}`, 'error');
-        saveRcloneTransferToHistory(mode, source, destination, 'Failed');
-    } finally {
         resetRcloneButtons();
     }
 }
 
 function resetRcloneButtons() {
     hideRcloneSpinner();
-    isRcloneProcessRunning = false;
     if (startRcloneBtn) startRcloneBtn.classList.remove('hidden');
     if (stopRcloneBtn) stopRcloneBtn.classList.add('hidden');
 }
 
 async function stopRcloneTransfer() {
-    if (!isRcloneProcessRunning) {
-        logMessage(rcloneMajorStepsOutput, "No Rclone process is currently running.", 'info');
-        return;
-    }
-
     logMessage(rcloneMajorStepsOutput, "Sending stop signal to Rclone process...", 'info');
     try {
         const response = await fetch('/stop-rclone-process', {
@@ -557,11 +503,46 @@ async function stopRcloneTransfer() {
         const result = await response.json();
         if (result.status === 'success') {
             logMessage(rcloneMajorStepsOutput, result.message, 'success');
+            stopRclonePolling();
         } else {
             logMessage(rcloneMajorStepsOutput, `Failed to stop Rclone: ${result.message}`, 'error');
         }
     } catch (error) {
         logMessage(rcloneMajorStepsOutput, `Network error stopping Rclone: ${error.message}`, 'error');
+    }
+}
+
+function startRclonePolling() {
+    if (rclonePollingInterval) {
+        clearInterval(rclonePollingInterval);
+    }
+    rclonePollingInterval = setInterval(getRcloneOutput, 1000);
+}
+
+function stopRclonePolling() {
+    if (rclonePollingInterval) {
+        clearInterval(rclonePollingInterval);
+        rclonePollingInterval = null;
+    }
+}
+
+async function getRcloneOutput() {
+    try {
+        const response = await fetch('/get-rclone-output');
+        const result = await response.json();
+        if (rcloneLiveOutput) {
+            rcloneLiveOutput.textContent = result.output;
+            autoScroll(rcloneLiveOutput);
+        }
+        
+        if (!result.is_running) {
+            logMessage(rcloneMajorStepsOutput, "Rclone command finished.", 'info');
+            resetRcloneButtons();
+            stopRclonePolling();
+            loadRecentCommands(); // Refresh recent commands after Rclone task finishes
+        }
+    } catch (error) {
+        console.error("Error fetching Rclone output:", error);
     }
 }
 
@@ -576,13 +557,7 @@ function appendOutput(element, text, status = 'default') {
     if (status === 'info') span.style.color = 'var(--info-color)';
 
     element.appendChild(span);
-    
-    // Auto-scroll with smart pause/resume
-    if (element === rcloneLiveOutput && !rcloneUserScrolledUp) {
-        element.scrollTop = element.scrollHeight;
-    } else if (element === terminalOutput && !terminalUserScrolledUp) {
-        element.scrollTop = element.scrollHeight;
-    }
+    autoScroll(element);
 }
 
 function logMessage(element, message, type = 'info') {
@@ -682,7 +657,6 @@ async function executeTerminalCommand(command = null) {
     logMessage(terminalOutput, `Executing: ${cmdToExecute}`, 'info');
     showTerminalSpinner();
     if (terminalOutput) terminalOutput.textContent = '';
-    isTerminalProcessRunning = true;
     if (executeTerminalBtn) executeTerminalBtn.classList.add('hidden');
     if (stopTerminalBtn) stopTerminalBtn.classList.remove('hidden');
 
@@ -696,9 +670,10 @@ async function executeTerminalCommand(command = null) {
 
         if (result.status === 'success') {
             logMessage(terminalOutput, result.message, 'success');
-            saveCommandToHistory(cmdToExecute);
+            // saveTerminalCommandToHistory is now handled by backend
             startTerminalPolling();
-            if (terminalCommandInput) terminalCommandInput.value = '';
+            // Keep command in field: terminalCommandInput.value = ''; // REMOVED
+            addCommandToLocalHistory(cmdToExecute); // Add to local history
         } else if (result.status === 'warning' && result.message.includes("already running")) {
             // Show confirmation modal
             if (terminalConfirmMessage) {
@@ -708,38 +683,34 @@ async function executeTerminalCommand(command = null) {
             pendingTerminalCommand = cmdToExecute;
         } else {
             logMessage(terminalOutput, `Error: ${result.message}`, 'error');
-            hideTerminalSpinner();
-            isTerminalProcessRunning = false;
-            if (executeTerminalBtn) executeTerminalBtn.classList.remove('hidden');
-            if (stopTerminalBtn) stopTerminalBtn.classList.add('hidden');
+            resetTerminalButtons();
         }
     } catch (error) {
         logMessage(terminalOutput, `Network error: ${error.message}`, 'error');
-        hideTerminalSpinner();
-        isTerminalProcessRunning = false;
-        if (executeTerminalBtn) executeTerminalBtn.classList.remove('hidden');
-        if (stopTerminalBtn) stopTerminalBtn.classList.add('hidden');
+        resetTerminalButtons();
     }
+}
+
+function resetTerminalButtons() {
+    hideTerminalSpinner();
+    if (executeTerminalBtn) executeTerminalBtn.classList.remove('hidden');
+    if (stopTerminalBtn) stopTerminalBtn.classList.add('hidden');
 }
 
 async function getTerminalOutput() {
     try {
         const response = await fetch('/get_terminal_output');
         const result = await response.json();
-        if (terminalOutput) terminalOutput.textContent = result.output;
-        
-        // Auto-scroll with smart pause/resume
-        if (terminalOutput && !terminalUserScrolledUp) {
-            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        if (terminalOutput) {
+            terminalOutput.textContent = result.output;
+            autoScroll(terminalOutput);
         }
-
-        if (!result.is_running && isTerminalProcessRunning) {
+        
+        if (!result.is_running) {
             logMessage(terminalOutput, "Terminal command finished.", 'info');
-            hideTerminalSpinner();
-            isTerminalProcessRunning = false;
-            if (executeTerminalBtn) executeTerminalBtn.classList.remove('hidden');
-            if (stopTerminalBtn) stopTerminalBtn.classList.add('hidden');
+            resetTerminalButtons();
             stopTerminalPolling();
+            loadRecentCommands(); // Refresh recent commands after Terminal task finishes
         }
     } catch (error) {
         console.error("Error fetching terminal output:", error);
@@ -747,11 +718,6 @@ async function getTerminalOutput() {
 }
 
 async function stopTerminalProcess() {
-    if (!isTerminalProcessRunning) {
-        logMessage(terminalOutput, "No terminal process is currently running.", 'info');
-        return;
-    }
-
     logMessage(terminalOutput, "Sending stop signal to terminal process...", 'info');
     try {
         const response = await fetch('/stop_terminal_process', {
@@ -761,10 +727,7 @@ async function stopTerminalProcess() {
         const result = await response.json();
         if (result.status === 'success') {
             logMessage(terminalOutput, result.message, 'success');
-            hideTerminalSpinner();
-            isTerminalProcessRunning = false;
-            if (executeTerminalBtn) executeTerminalBtn.classList.remove('hidden');
-            if (stopTerminalBtn) stopTerminalBtn.classList.add('hidden');
+            resetTerminalButtons();
             stopTerminalPolling();
         } else {
             logMessage(terminalOutput, `Failed to stop terminal process: ${result.message}`, 'error');
@@ -807,120 +770,376 @@ function stopTerminalPolling() {
     }
 }
 
-// --- Recent Commands History ---
-function saveCommandToHistory(command) {
-    let commands = JSON.parse(localStorage.getItem('terminalCommands')) || [];
-    commands.unshift({ command: command, timestamp: new Date().toLocaleString() });
-    if (commands.length > 20) {
-        commands.pop();
+// --- Recent Commands History (Database Integrated) ---
+// saveTerminalCommandToHistory and saveRcloneTransferToHistory are now handled by backend
+
+async function loadRecentCommands() {
+    try {
+        const response = await fetch('/get-recent-commands');
+        const data = await response.json();
+        const terminalCommands = data.terminal_commands;
+        const rcloneTransfers = data.rclone_transfers;
+
+        if (recentTerminalCommandsDiv) {
+            recentTerminalCommandsDiv.innerHTML = '';
+            if (terminalCommands.length === 0) {
+                recentTerminalCommandsDiv.innerHTML = '<p class="text-text-color">No recent terminal commands.</p>';
+            } else {
+                terminalCommands.slice(0, 5).forEach((item, index) => { // Show latest 5
+                    const div = document.createElement('div');
+                    div.className = 'bg-input-bg-color p-3 rounded-md border border-border-color flex justify-between items-center';
+                    div.innerHTML = `
+                        <div>
+                            <code class="text-primary-color text-sm">${escapeHtml(item.command)}</code>
+                            <p class="text-xs text-gray-400 mt-1">Status: <span class="${item.status === 'Success' ? 'text-success-color' : (item.status === 'Failed' ? 'text-error-color' : (item.status === 'Running' ? 'text-info-color' : 'text-warning-color'))}">${item.status}</span> | ${new Date(item.timestamp).toLocaleString()}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="btn-secondary btn-fill-command px-3 py-1 text-xs" data-command="${escapeHtml(item.command)}">
+                                <i class="fas fa-fill"></i> Fill
+                            </button>
+                            <button class="btn-danger btn-delete-command px-3 py-1 text-xs" data-id="${item.id}">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    `;
+                    recentTerminalCommandsDiv.appendChild(div);
+                });
+                if (terminalCommands.length > 5) {
+                    const moreButton = document.createElement('button');
+                    moreButton.className = 'btn-secondary mt-3 w-full';
+                    moreButton.textContent = 'Show More Terminal Commands';
+                    moreButton.onclick = () => displayAllCommands(terminalCommands, 'terminal');
+                    recentTerminalCommandsDiv.appendChild(moreButton);
+                }
+            }
+        }
+
+        if (recentRcloneTransfersDiv) {
+            recentRcloneTransfersDiv.innerHTML = '';
+            if (rcloneTransfers.length === 0) {
+                recentRcloneTransfersDiv.innerHTML = '<p class="text-text-color">No recent Rclone transfers.</p>';
+            } else {
+                rcloneTransfers.slice(0, 5).forEach((item, index) => { // Show latest 5
+                    const statusClass = item.status === 'Success' ? 'text-success-color' : (item.status === 'Failed' ? 'text-error-color' : (item.status === 'Running' ? 'text-info-color' : 'text-warning-color'));
+                    const div = document.createElement('div');
+                    div.className = 'bg-input-bg-color p-3 rounded-md border border-border-color space-y-1';
+                    div.innerHTML = `
+                        <p><span class="font-semibold text-accent-color">${item.mode}:</span> <code class="text-primary-color text-sm">${escapeHtml(item.source)}</code> ${item.destination ? `<i class="fas fa-arrow-right mx-1 text-gray-500"></i> <code class="text-primary-color text-sm">${escapeHtml(item.destination)}</code>` : ''}</p>
+                        ${item.protocol ? `<p class="text-xs text-gray-400">Protocol: ${escapeHtml(item.protocol)}</p>` : ''}
+                        ${item.flags ? `<p class="text-xs text-gray-400">Flags: ${escapeHtml(item.flags)}</p>` : ''}
+                        <p class="text-xs text-gray-400">Status: <span class="${statusClass}">${item.status}</span> | ${new Date(item.timestamp).toLocaleString()}</p>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <button class="btn-secondary btn-fill-rclone px-3 py-1 text-xs" 
+                                data-mode="${escapeHtml(item.mode)}" 
+                                data-source="${escapeHtml(item.source)}" 
+                                data-destination="${escapeHtml(item.destination || '')}"
+                                data-protocol="${escapeHtml(item.protocol || '')}"
+                                data-flags="${escapeHtml(item.flags || '')}">
+                                <i class="fas fa-fill"></i> Fill
+                            </button>
+                            <button class="btn-danger btn-delete-rclone px-3 py-1 text-xs" data-id="${item.id}">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    `;
+                    recentRcloneTransfersDiv.appendChild(div);
+                });
+                if (rcloneTransfers.length > 5) {
+                    const moreButton = document.createElement('button');
+                    moreButton.className = 'btn-secondary mt-3 w-full';
+                    moreButton.textContent = 'Show More Rclone Transfers';
+                    moreButton.onclick = () => displayAllCommands(rcloneTransfers, 'rclone');
+                    recentRcloneTransfersDiv.appendChild(moreButton);
+                }
+            }
+        }
+
+        // Add event listeners for fill and delete buttons
+        document.querySelectorAll('.btn-fill-command').forEach(button => {
+            button.onclick = (e) => fillTerminalCommand(e.target.dataset.command || e.target.closest('button').dataset.command);
+        });
+        document.querySelectorAll('.btn-delete-command').forEach(button => {
+            button.onclick = (e) => deleteTerminalCommand(e.target.dataset.id || e.target.closest('button').dataset.id);
+        });
+        document.querySelectorAll('.btn-fill-rclone').forEach(button => {
+            button.onclick = (e) => fillRcloneTransfer(e.target.dataset);
+        });
+        document.querySelectorAll('.btn-delete-rclone').forEach(button => {
+            button.onclick = (e) => deleteRcloneTransfer(e.target.dataset.id || e.target.closest('button').dataset.id);
+        });
+
+    } catch (error) {
+        console.error("Error loading recent commands:", error);
+        if (recentTerminalCommandsDiv) recentTerminalCommandsDiv.innerHTML = '<p class="text-error-color">Error loading recent terminal commands.</p>';
+        if (recentRcloneTransfersDiv) recentRcloneTransfersDiv.innerHTML = '<p class="text-error-color">Error loading recent Rclone transfers.</p>';
     }
-    localStorage.setItem('terminalCommands', JSON.stringify(commands));
 }
 
-function saveRcloneTransferToHistory(mode, source, destination, status) {
-    let transfers = JSON.parse(localStorage.getItem('rcloneTransfers')) || [];
-    transfers.unshift({
-        mode: mode,
-        source: source,
-        destination: destination,
-        status: status,
-        timestamp: new Date().toLocaleString()
+function displayAllCommands(items, type) {
+    const container = type === 'terminal' ? recentTerminalCommandsDiv : recentRcloneTransfersDiv;
+    container.innerHTML = ''; // Clear current view
+
+    items.forEach(item => {
+        if (type === 'terminal') {
+            const div = document.createElement('div');
+            div.className = 'bg-input-bg-color p-3 rounded-md border border-border-color flex justify-between items-center';
+            div.innerHTML = `
+                <div>
+                    <code class="text-primary-color text-sm">${escapeHtml(item.command)}</code>
+                    <p class="text-xs text-gray-400 mt-1">Status: <span class="${item.status === 'Success' ? 'text-success-color' : (item.status === 'Failed' ? 'text-error-color' : (item.status === 'Running' ? 'text-info-color' : 'text-warning-color'))}">${item.status}</span> | ${new Date(item.timestamp).toLocaleString()}</p>
+                </div>
+                <div class="flex gap-2">
+                    <button class="btn-secondary btn-fill-command px-3 py-1 text-xs" data-command="${escapeHtml(item.command)}">
+                        <i class="fas fa-fill"></i> Fill
+                    </button>
+                    <button class="btn-danger btn-delete-command px-3 py-1 text-xs" data-id="${item.id}">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+        } else { // rclone
+            const statusClass = item.status === 'Success' ? 'text-success-color' : (item.status === 'Failed' ? 'text-error-color' : (item.status === 'Running' ? 'text-info-color' : 'text-warning-color'));
+            const div = document.createElement('div');
+            div.className = 'bg-input-bg-color p-3 rounded-md border border-border-color space-y-1';
+            div.innerHTML = `
+                <p><span class="font-semibold text-accent-color">${item.mode}:</span> <code class="text-primary-color text-sm">${escapeHtml(item.source)}</code> ${item.destination ? `<i class="fas fa-arrow-right mx-1 text-gray-500"></i> <code class="text-primary-color text-sm">${escapeHtml(item.destination)}</code>` : ''}</p>
+                ${item.protocol ? `<p class="text-xs text-gray-400">Protocol: ${escapeHtml(item.protocol)}</p>` : ''}
+                ${item.flags ? `<p class="text-xs text-gray-400">Flags: ${escapeHtml(item.flags)}</p>` : ''}
+                <p class="text-xs text-gray-400">Status: <span class="${statusClass}">${item.status}</span> | ${new Date(item.timestamp).toLocaleString()}</p>
+                <div class="flex flex-wrap gap-2 mt-2">
+                    <button class="btn-secondary btn-fill-rclone px-3 py-1 text-xs" 
+                        data-mode="${escapeHtml(item.mode)}" 
+                        data-source="${escapeHtml(item.source)}" 
+                        data-destination="${escapeHtml(item.destination || '')}"
+                        data-protocol="${escapeHtml(item.protocol || '')}"
+                        data-flags="${escapeHtml(item.flags || '')}">
+                        <i class="fas fa-fill"></i> Fill
+                    </button>
+                    <button class="btn-danger btn-delete-rclone px-3 py-1 text-xs" data-id="${item.id}">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
     });
-    if (transfers.length > 20) {
-        transfers.pop();
-    }
-    localStorage.setItem('rcloneTransfers', JSON.stringify(transfers));
+
+    // Add a "Show Less" button
+    const showLessButton = document.createElement('button');
+    showLessButton.className = 'btn-secondary mt-3 w-full';
+    showLessButton.textContent = `Show Less ${type === 'terminal' ? 'Terminal Commands' : 'Rclone Transfers'}`;
+    showLessButton.onclick = loadRecentCommands; // Reloads the initial 5 items
+    container.appendChild(showLessButton);
+
+    // Re-add event listeners for newly created buttons
+    document.querySelectorAll('.btn-fill-command').forEach(button => {
+        button.onclick = (e) => fillTerminalCommand(e.target.dataset.command || e.target.closest('button').dataset.command);
+    });
+    document.querySelectorAll('.btn-delete-command').forEach(button => {
+        button.onclick = (e) => deleteTerminalCommand(e.target.dataset.id || e.target.closest('button').dataset.id);
+    });
+    document.querySelectorAll('.btn-fill-rclone').forEach(button => {
+        button.onclick = (e) => fillRcloneTransfer(e.target.dataset);
+    });
+    document.querySelectorAll('.btn-delete-rclone').forEach(button => {
+        button.onclick = (e) => deleteRcloneTransfer(e.target.dataset.id || e.target.closest('button').dataset.id);
+    });
 }
 
-function loadRecentCommands() {
-    const terminalCommands = JSON.parse(localStorage.getItem('terminalCommands')) || [];
-    const rcloneTransfers = JSON.parse(localStorage.getItem('rcloneTransfers')) || [];
 
-    if (recentTerminalCommandsDiv) {
-        recentTerminalCommandsDiv.innerHTML = '';
-        if (terminalCommands.length === 0) {
-            recentTerminalCommandsDiv.innerHTML = '<p class="text-text-color">No recent terminal commands.</p>';
+async function deleteTerminalCommand(id) {
+    if (confirm("Are you sure you want to delete this terminal command?")) {
+        try {
+            const response = await fetch(`/delete-terminal-command/${id}`, { method: 'POST' });
+            const result = await response.json();
+            if (result.status === 'success') {
+                logMessage(majorStepsOutput, result.message, 'success');
+                loadRecentCommands(); // Reload history
+            } else {
+                logMessage(majorStepsOutput, `Failed to delete command: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            logMessage(majorStepsOutput, `Network error deleting command: ${error.message}`, 'error');
+        }
+    }
+}
+
+async function deleteRcloneTransfer(id) {
+    if (confirm("Are you sure you want to delete this Rclone transfer record?")) {
+        try {
+            const response = await fetch(`/delete-rclone-transfer/${id}`, { method: 'POST' });
+            const result = await response.json();
+            if (result.status === 'success') {
+                logMessage(majorStepsOutput, result.message, 'success');
+                loadRecentCommands(); // Reload history
+            } else {
+                logMessage(majorStepsOutput, `Failed to delete transfer: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            logMessage(majorStepsOutput, `Network error deleting transfer: ${error.message}`, 'error');
+        }
+    }
+}
+
+function fillTerminalCommand(command) {
+    if (terminalCommandInput) {
+        terminalCommandInput.value = command;
+        showSection('web-terminal'); // Switch to terminal tab
+    }
+}
+
+function fillRcloneTransfer(data) {
+    if (modeSelect) modeSelect.value = data.mode;
+    if (sourceInput) sourceInput.value = data.source;
+    if (destinationInput) destinationInput.value = data.destination;
+    if (serveProtocolSelect) serveProtocolSelect.value = data.protocol;
+    if (additionalFlagsInput) additionalFlagsInput.value = data.flags;
+    
+    updateModeDescription(); // Re-evaluate UI based on new mode
+    toggleRemoteField(); // Re-evaluate UI based on new mode
+    showSection('rclone-transfer'); // Switch to rclone transfer tab
+}
+
+async function clearAllRecentCommands() {
+    if (confirm("Are you sure you want to clear all recent commands and transfers history? This cannot be undone.")) {
+        try {
+            const response = await fetch('/clear-all-history', { method: 'POST' });
+            const result = await response.json();
+            if (result.status === 'success') {
+                logMessage(majorStepsOutput, result.message, 'success');
+                loadRecentCommands(); // Reload history
+            } else {
+                logMessage(majorStepsOutput, `Failed to clear history: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            logMessage(majorStepsOutput, `Network error clearing history: ${error.message}`, 'error');
+        }
+    }
+}
+
+// --- Terminal Command History (Client-side for quick access) ---
+function addCommandToLocalHistory(command) {
+    terminalCommandHistory.unshift(command);
+    if (terminalCommandHistory.length > 10) {
+        terminalCommandHistory.pop();
+    }
+}
+
+function showTerminalCommandHistory() {
+    if (terminalHistoryContent) {
+        terminalHistoryContent.innerHTML = '';
+        if (terminalCommandHistory.length === 0) {
+            terminalHistoryContent.innerHTML = '<p class="text-text-color">No command history yet.</p>';
         } else {
-            terminalCommands.forEach(item => {
+            terminalCommandHistory.forEach((cmd, index) => {
                 const div = document.createElement('div');
-                div.className = 'bg-input-bg-color p-3 rounded-md border border-border-color flex justify-between items-center';
+                div.className = 'bg-input-bg-color p-2 rounded-md border border-border-color flex justify-between items-center mb-2';
                 div.innerHTML = `
-                    <div>
-                        <code class="text-primary-color text-sm">${escapeHtml(item.command)}</code>
-                        <p class="text-xs text-gray-400 mt-1">${item.timestamp}</p>
-                    </div>
-                    <button class="btn-secondary btn-copy-command px-3 py-1 text-xs" data-command="${escapeHtml(item.command)}">
+                    <code class="text-primary-color text-sm flex-1 mr-2">${escapeHtml(cmd)}</code>
+                    <button class="btn-secondary btn-copy-command px-2 py-1 text-xs" data-command="${escapeHtml(cmd)}">
                         <i class="fas fa-copy"></i> Copy
                     </button>
                 `;
-                recentTerminalCommandsDiv.appendChild(div);
+                terminalHistoryContent.appendChild(div);
+            });
+            // Add event listeners for copy buttons in the modal
+            document.querySelectorAll('#terminalHistoryContent .btn-copy-command').forEach(button => {
+                button.onclick = (e) => {
+                    copyToClipboard(e.target.dataset.command || e.target.closest('button').dataset.command);
+                    if (terminalHistoryModal) terminalHistoryModal.classList.add('hidden'); // Close modal after copy
+                };
             });
         }
     }
+    if (terminalHistoryModal) terminalHistoryModal.classList.remove('hidden');
+}
 
-    if (recentRcloneTransfersDiv) {
-        recentRcloneTransfersDiv.innerHTML = '';
-        if (rcloneTransfers.length === 0) {
-            recentRcloneTransfersDiv.innerHTML = '<p class="text-text-color">No recent Rclone transfers.</p>';
-        } else {
-            rcloneTransfers.forEach(item => {
-                const statusClass = item.status === 'Success' ? 'text-success-color' : (item.status === 'Failed' ? 'text-error-color' : 'text-warning-color');
-                const div = document.createElement('div');
-                div.className = 'bg-input-bg-color p-3 rounded-md border border-border-color space-y-1';
-                div.innerHTML = `
-                    <p><span class="font-semibold text-accent-color">${item.mode}:</span> <code class="text-primary-color text-sm">${escapeHtml(item.source)}</code> ${item.destination ? `<i class="fas fa-arrow-right mx-1 text-gray-500"></i> <code class="text-primary-color text-sm">${escapeHtml(item.destination)}</code>` : ''}</p>
-                    <p class="text-xs text-gray-400">Status: <span class="${statusClass}">${item.status}</span> | ${item.timestamp}</p>
-                    <div class="flex flex-wrap gap-2 mt-2">
-                        <button class="btn-secondary btn-copy-rclone-source px-3 py-1 text-xs" data-source="${escapeHtml(item.source)}"><i class="fas fa-copy"></i> Copy Source</button>
-                        ${item.destination ? `<button class="btn-secondary btn-copy-rclone-destination px-3 py-1 text-xs" data-destination="${escapeHtml(item.destination)}"><i class="fas fa-copy"></i> Copy Destination</button>` : ''}
-                    </div>
-                `;
-                recentRcloneTransfersDiv.appendChild(div);
+// --- Notepad Logic (Database Integrated) ---
+async function saveNotepadContent() {
+    if (notepadContent) {
+        try {
+            await fetch('/save-notepad-content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: notepadContent.value })
             });
+            // logMessage(majorStepsOutput, "Notepad content saved.", 'info'); // Too frequent, remove
+        } catch (error) {
+            console.error("Error saving notepad content:", error);
+            // logMessage(majorStepsOutput, "Failed to save notepad content.", 'error'); // Too frequent, remove
         }
     }
-
-    // Add event listeners for copy buttons
-    document.querySelectorAll('.btn-copy-command').forEach(button => {
-        button.onclick = (e) => copyToClipboard(e.target.dataset.command || e.target.closest('button').dataset.command);
-    });
-    document.querySelectorAll('.btn-copy-rclone-source').forEach(button => {
-        button.onclick = (e) => copyToClipboard(e.target.dataset.source || e.target.closest('button').dataset.source);
-    });
-    document.querySelectorAll('.btn-copy-rclone-destination').forEach(button => {
-        button.onclick = (e) => copyToClipboard(e.target.dataset.destination || e.target.closest('button').dataset.destination);
-    });
 }
 
-function clearAllRecentCommands() {
-    if (confirm("Are you sure you want to clear all recent commands and transfers history? This cannot be undone.")) {
-        localStorage.removeItem('terminalCommands');
-        localStorage.removeItem('rcloneTransfers');
-        loadRecentCommands();
-        logMessage(majorStepsOutput, "All recent commands and transfers history cleared.", 'info');
-    }
-}
-
-// --- Notepad Logic ---
-function saveNotepadContent() {
+async function loadNotepadContent() {
     if (notepadContent) {
-        localStorage.setItem('notepadContent', notepadContent.value);
-    }
-}
+        try {
+            const response = await fetch('/get-notepad-content');
+            const result = await response.json();
+            if (result.status === 'success') {
+                if (!result.content) {
+                    // Default content if empty
+                    notepadContent.value = `
+- Commonly used rclone flags with their function:
+  --bwlimit <RATE>        Limit bandwidth usage to RATE.
+  --checksum              Skip based on checksum & size, not modtime.
+  --dry-run               Do a trial run with no permanent changes.
+  --fast-list             Use fast listing for cloud remotes.
+  --ignore-existing       Skip files that exist on destination.
+  --max-age <DURATION>    Only transfer files older than this duration.
+  --min-size <SIZE>       Only transfer files bigger than this size.
+  --progress              Show progress during transfer.
+  --stats <DURATION>      Print transfer statistics every duration.
+  --v                     Verbose logging.
+  --vv                    Very verbose logging.
+  --exclude <PATTERN>     Exclude files matching pattern.
+  --include <PATTERN>     Include files matching pattern.
 
-function loadNotepadContent() {
-    if (notepadContent) {
-        notepadContent.value = localStorage.getItem('notepadContent') || '';
+- Commonly used Linux Commands:
+  ls -la                  List all files and directories in long format.
+  pwd                     Print working directory.
+  cd <DIR>                Change directory.
+  mkdir <DIR>             Create a new directory.
+  rm <FILE>               Remove a file.
+  rm -rf <DIR>            Recursively remove a directory and its contents.
+  cp <SOURCE> <DEST>      Copy files or directories.
+  mv <SOURCE> <DEST>      Move/rename files or directories.
+  cat <FILE>              Concatenate and display file content.
+  grep <PATTERN> <FILE>   Search for patterns in files.
+  df -h                   Display free disk space in human readable format.
+  du -sh <DIR>            Estimate file space usage of a directory.
+  top                     Display Linux processes.
+  htop                    Interactive process viewer.
+  ping <HOST>             Send ICMP ECHO_REQUEST to network hosts.
+  curl <URL>              Transfer data from or to a server.
+  wget <URL>              Non-interactive network downloader.
+  chmod <PERMS> <FILE>    Change file permissions.
+  chown <USER>:<GROUP> <FILE> Change file ownership.
+  ps aux                  Display running processes.
+  kill <PID>              Terminate a process.
+  history                 Show command history.
+  echo <TEXT>             Display a line of text.
+  man <COMMAND>           Display the manual page for a command.
+                    `;
+                } else {
+                    notepadContent.value = result.content;
+                }
+            }
+        } catch (error) {
+            console.error("Error loading notepad content:", error);
+            notepadContent.value = "Error loading notepad content.";
+        }
     }
 }
 
 // Utility to escape HTML for display
 function escapeHtml(text) {
     const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
+        '&': '&',
+        '<': '<',
+        '>': '>',
+        '"': '"',
         "'": '&#039;'
     };
     return text.replace(/[&<>"']/g, function(m) { return map[m]; });
@@ -1021,10 +1240,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Setup auto-scrolling for output areas
     if (rcloneLiveOutput) {
-        setupAutoScrolling(rcloneLiveOutput, rcloneAutoScrollEnabled, rcloneUserScrolledUp);
+        setupAutoScrolling(rcloneLiveOutput);
     }
     if (terminalOutput) {
-        setupAutoScrolling(terminalOutput, terminalAutoScrollEnabled, terminalUserScrolledUp);
+        setupAutoScrolling(terminalOutput);
     }
 
     // Listen for file input changes to display file name
@@ -1078,6 +1297,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    if (terminalHistoryBtn) {
+        terminalHistoryBtn.addEventListener('click', showTerminalCommandHistory);
+    }
+    if (closeTerminalHistoryModal) {
+        closeTerminalHistoryModal.addEventListener('click', () => {
+            if (terminalHistoryModal) terminalHistoryModal.classList.add('hidden');
+        });
+    }
+
 
     if (confirmStopAndStartBtn) {
         confirmStopAndStartBtn.addEventListener('click', async () => {
@@ -1094,10 +1322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cancelStopAndStartBtn.addEventListener('click', () => {
             if (terminalConfirmModal) terminalConfirmModal.classList.add('hidden');
             pendingTerminalCommand = null;
-            hideTerminalSpinner();
-            isTerminalProcessRunning = false;
-            if (executeTerminalBtn) executeTerminalBtn.classList.remove('hidden');
-            if (stopTerminalBtn) stopTerminalBtn.classList.add('hidden');
+            resetTerminalButtons();
         });
     }
 
@@ -1112,10 +1337,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (terminalConfirmModal && !terminalConfirmModal.classList.contains('hidden')) {
                 terminalConfirmModal.classList.add('hidden');
                 pendingTerminalCommand = null;
-                hideTerminalSpinner();
-                isTerminalProcessRunning = false;
-                if (executeTerminalBtn) executeTerminalBtn.classList.remove('hidden');
-                if (stopTerminalBtn) stopTerminalBtn.classList.add('hidden');
+                resetTerminalButtons();
+            }
+            if (terminalHistoryModal && !terminalHistoryModal.classList.contains('hidden')) {
+                terminalHistoryModal.classList.add('hidden');
             }
         }
     });

@@ -53,6 +53,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV HOME /app
 RUN mkdir -p /app/.config/rclone/
 
+# Declare a volume for persistent storage of rclone config and SQLite database
+VOLUME /app/.config/rclone
+
 # Expose the port Flask will run on
 EXPOSE 5000
 

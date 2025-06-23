@@ -8,7 +8,6 @@ body {
 
 /* Color Variables - Default Greenish White Monochromatic */
 :root {
-    /* Default Greenish White Monochromatic (Dark Mode) */
     --primary-color: #DCE7DC; /* Lighter greenish-white for text */
     --accent-color: #558B55; /* Muted vibrant green */
     --bg-color: #1A2A1A; /* Dark background */
@@ -19,9 +18,9 @@ body {
     --button-bg-color: #6AA66A; /* Brighter button green */
     --button-text-color: #1A2A1A; /* Dark text for light buttons */
     --success-color: #4CAF50;
-    --error-color: #E53935; /* Stronger red for errors */
-    --warning-color: #FFB300; /* Amber for warnings */
-    --info-color: #2196F3; /* Blue for info messages */
+    --error-color: #E53935;
+    --warning-color: #FFB300;
+    --info-color: #2196F3;
 
     /* RGB values for rgba() colors for transparent overlays */
     --card-bg-color-rgb: 45, 64, 45;
@@ -83,6 +82,7 @@ body {
     --card-bg-color-rgb: 45, 66, 88; --accent-color-rgb: 74, 92, 176; --primary-color-rgb: 227, 229, 240; --button-bg-color-rgb: 106, 123, 192;
 }
 
+/* Login Page Background Shapes - Increased opacity for more prominence */
 .background-shapes {
     position: absolute;
     top: 0;
@@ -100,9 +100,9 @@ body {
     left: -10%;
     width: 40%;
     height: 40%;
-    background: rgba(var(--accent-color-rgb), 0.15);
+    background: rgba(var(--accent-color-rgb), 0.25); /* Increased opacity */
     border-radius: 50%;
-    filter: blur(60px);
+    filter: blur(70px); /* Increased blur */
     animation: float1 15s infinite ease-in-out alternate;
 }
 .shape-2 {
@@ -111,9 +111,9 @@ body {
     right: -15%;
     width: 50%;
     height: 50%;
-    background: rgba(var(--primary-color-rgb), 0.1);
+    background: rgba(var(--primary-color-rgb), 0.15); /* Increased opacity */
     border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-    filter: blur(70px);
+    filter: blur(80px); /* Increased blur */
     animation: float2 20s infinite ease-in-out alternate;
 }
 .shape-3 {
@@ -122,9 +122,9 @@ body {
     right: 5%;
     width: 25%;
     height: 25%;
-    background: rgba(var(--button-bg-color-rgb), 0.2);
+    background: rgba(var(--button-bg-color-rgb), 0.3); /* Increased opacity */
     border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-    filter: blur(50px);
+    filter: blur(60px); /* Increased blur */
     animation: float3 18s infinite ease-in-out alternate;
 }
 
@@ -267,7 +267,7 @@ body {
     white-space: pre-wrap;
     word-break: break-all;
     overflow-y: auto;
-    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; /* Keeping monospace for code output */
     font-size: 0.875rem;
     line-height: 1.5;
     color: var(--primary-color);
@@ -290,6 +290,35 @@ body {
 .major-steps-output .error { color: var(--error-color); }
 .major-steps-output .warning { color: var(--warning-color); }
 .major-steps-output .info { color: var(--info-color); }
+
+/* Scrollbar Styling */
+/* For Webkit browsers (Chrome, Safari) */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--input-bg-color);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 10px;
+    border: 2px solid var(--input-bg-color); /* Creates a padding effect */
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--button-bg-color);
+}
+
+/* For Firefox */
+html {
+    scrollbar-width: thin; /* "auto" or "thin" */
+    scrollbar-color: var(--accent-color) var(--input-bg-color); /* thumb color track color */
+}
+
 
 /* Slider Styling (Webkit/Firefox) */
 .slider {
@@ -565,7 +594,7 @@ header {
     header .ml-auto {
         margin-left: 0 !important;
         display: flex;
-        justify-content: center;
+        justify-content: flex-end; /* Align to right */
         align-items: center;
         gap: 1rem;
         width: 100%;

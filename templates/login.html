@@ -17,20 +17,19 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            overflow: hidden; /* Hide overflow for background shapes */
+            overflow: hidden;
             position: relative;
         }
         :root {
-            /* Default Greenish White Monochromatic */
-            --primary-color: #E0EAE0; /* Soft greenish-white */
-            --accent-color: #6A9A6A; /* Muted deep green */
-            --bg-color: #0F1A0F; /* Dark background */
-            --card-bg-color: #1C2B1C; /* Slightly lighter dark for cards */
-            --text-color: #E0EAE0; /* Light text */
-            --border-color: #384A38; /* Darker green border */
+            --primary-color: #E0EAE0;
+            --accent-color: #6A9A6A;
+            --bg-color: #0F1A0F;
+            --card-bg-color: #1C2B1C;
+            --text-color: #E0EAE0;
+            --border-color: #384A38;
             --input-bg-color: #2A3B2A;
             --button-bg-color: #558A55;
-            --button-text-color: #F0F5F0; /* Slightly off-white for button text */
+            --button-text-color: #F0F5F0;
             --success-color: #4CAF50;
             --error-color: #F44336;
             --warning-color: #FFC107;
@@ -38,17 +37,16 @@
             --bg-gradient-end: #0B140B;
         }
 
-        /* Dedicated Black Mode */
         .black-mode {
-            --primary-color: #E0E0E0; /* Light gray for text */
-            --accent-color: #4CAF50; /* Vibrant green accent */
-            --bg-color: #000000; /* Pure black background */
-            --card-bg-color: #1C1C1C; /* Dark gray for cards */
-            --text-color: #E0E0E0; /* General text color */
-            --border-color: #333333; /* Darker gray border */
-            --input-bg-color: #282828; /* Slightly lighter input background */
-            --button-bg-color: #4CAF50; /* Green button */
-            --button-text-color: #FFFFFF; /* White text for buttons */
+            --primary-color: #E0E0E0;
+            --accent-color: #4CAF50;
+            --bg-color: #000000;
+            --card-bg-color: #1C1C1C;
+            --text-color: #E0E0E0;
+            --border-color: #333333;
+            --input-bg-color: #282828;
+            --button-bg-color: #4CAF50;
+            --button-text-color: #FFFFFF;
             --success-color: #4CAF50;
             --error-color: #E53935;
             --warning-color: #FFB300;
@@ -57,8 +55,7 @@
             --bg-gradient-end: #000000;
         }
 
-        /* --- Theme definitions (muted and high contrast) --- */
-        .dark-mode { /* Default */
+        .dark-mode {
             --primary-color: #E0EAE0; --accent-color: #6A9A6A; --bg-color: #0F1A0F; --card-bg-color: #1C2B1C; --text-color: #E0EAE0; --border-color: #384A38; --input-bg-color: #2A3B2A; --button-bg-color: #558A55; --button-text-color: #F0F5F0;
             --bg-gradient-start: #1A2A1A; --bg-gradient-end: #0B140B;
         }
@@ -87,6 +84,7 @@
             --bg-gradient-start: #3C4E8C; --bg-gradient-end: #2A3B7A;
         }
 
+        /* Login Page Background Shapes - Increased opacity for more prominence */
         .background-shapes {
             position: absolute;
             top: 0;
@@ -95,7 +93,7 @@
             height: 100%;
             pointer-events: none;
             z-index: -1;
-            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end)); /* Use gradient variables */
         }
 
         .shape-1 {
@@ -104,9 +102,9 @@
             left: -10%;
             width: 40%;
             height: 40%;
-            background: rgba(var(--accent-color-rgb, 106, 154, 106), 0.1);
+            background: rgba(var(--accent-color-rgb, 106, 154, 106), 0.25); /* Increased opacity */
             border-radius: 50%;
-            filter: blur(50px);
+            filter: blur(70px); /* Increased blur */
             animation: float1 15s infinite ease-in-out alternate;
         }
         .shape-2 {
@@ -115,9 +113,9 @@
             right: -15%;
             width: 50%;
             height: 50%;
-            background: rgba(var(--primary-color-rgb, 224, 234, 224), 0.08);
+            background: rgba(var(--primary-color-rgb, 224, 234, 224), 0.15); /* Increased opacity */
             border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-            filter: blur(60px);
+            filter: blur(80px); /* Increased blur */
             animation: float2 20s infinite ease-in-out alternate;
         }
         .shape-3 {
@@ -126,9 +124,9 @@
             right: 5%;
             width: 25%;
             height: 25%;
-            background: rgba(var(--button-bg-color-rgb, 85, 138, 85), 0.15);
+            background: rgba(var(--button-bg-color-rgb, 85, 138, 85), 0.3); /* Increased opacity */
             border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-            filter: blur(40px);
+            filter: blur(60px); /* Increased blur */
             animation: float3 18s infinite ease-in-out alternate;
         }
 
@@ -147,7 +145,7 @@
 
         /* Utility to get RGB values from CSS variables for rgba() */
         :root {
-            --accent-color-rgb: 106, 154, 106; /* Default for greenish-white */
+            --accent-color-rgb: 106, 154, 106;
             --primary-color-rgb: 224, 234, 224;
             --button-bg-color-rgb: 85, 138, 85;
             --card-bg-color-rgb: 28, 43, 28;
@@ -195,7 +193,6 @@
             --card-bg-color-rgb: 28, 28, 28;
         }
 
-
         .card {
             background-color: var(--card-bg-color);
             border: 1px solid var(--border-color);
@@ -223,7 +220,7 @@
             color: var(--error-color);
         }
         .app-title {
-            font-family: 'Montserrat', sans-serif; /* Changed to Montserrat */
+            font-family: 'Montserrat', sans-serif;
             font-weight: 700;
             background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
             -webkit-background-clip: text;
@@ -231,11 +228,10 @@
         }
     </style>
     <script>
-        // Apply saved theme immediately on page load to prevent flash
         (function() {
             const savedTheme = localStorage.getItem('theme') || 'dark-mode';
-            document.documentElement.className = savedTheme; // Apply to html or body
-            document.body.className = savedTheme; // Apply to body for fallback/compatibility
+            document.documentElement.className = savedTheme;
+            document.body.className = savedTheme;
         })();
     </script>
 </head>
