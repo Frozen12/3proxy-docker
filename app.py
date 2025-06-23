@@ -247,7 +247,13 @@ def load_initial_process_states():
         # Same for terminal
 
 with app.app_context():
-    load_initial_process_states()
+    create_initial_dirs()
+    init_db()
+    # Clear all sessions on startup to force re-login
+    # This is a simple way to ensure users are logged out after a server restart.
+    # In a multi-instance deployment, a shared session store would be needed.
+    session.clear()
+    print("All sessions cleared on application startup.")
 
 # --- Authentication Decorator ---
 def login_required(f):

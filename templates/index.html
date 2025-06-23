@@ -113,8 +113,8 @@
             <div id="rclone-transfer-section" class="content-section card p-6 rounded-xl shadow-md active">
                 <h2 class="text-2xl font-bold mb-4 text-primary-color flex items-center"><i class="fas fa-exchange-alt mr-3"></i> Rclone Transfer</h2>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="md:col-span-1">
                         <label for="mode" class="block text-sm font-bold mb-2 text-primary-color">Rclone Mode</label>
                         <select id="mode" class="input-field w-full p-3 rounded-lg custom-select">
                             <option value="sync" data-description="Make source and destination identical." selected>sync</option>
@@ -141,38 +141,44 @@
                         </select>
                         <p id="mode-description" class="text-xs mt-1 text-gray-400">Make source and destination identical.</p>
                     </div>
+                    <div class="md:col-span-2"></div> 
+                </div>
 
-                    <div class="relative" id="source-field-container">
+                <div class="mb-6 space-y-4">
+                    <div id="source-field-container">
                         <label for="source" id="source-label" class="block text-sm font-bold mb-2 text-primary-color">Source Path</label>
                         <input type="text" id="source" class="input-field w-full p-3 rounded-lg" value="">
                         <!-- URL input field for copyurl mode, hidden by default -->
                         <input type="text" id="url-input" class="input-field w-full p-3 rounded-lg hidden" placeholder="Enter URL">
-                        <!-- Serve Protocol dropdown for serve mode, hidden by default -->
-                        <label for="serve-protocol-select" class="block text-sm font-bold mb-2 text-primary-color hidden" id="serve-protocol-label">Protocol</label>
-                        <select id="serve-protocol-select" class="input-field w-full p-3 rounded-lg custom-select hidden mb-3">
-                            <option value="http">HTTP</option>
-                            <option value="webdav">WebDAV</option>
-                            <option value="ftp">FTP</option>
-                            <option value="sftp">SFTP</option>
-                            <option value="dlna">DLNA</option>
-                        </select>
-                        <!-- Serve Port input for serve mode, hidden by default -->
-                        <input type="text" id="serve-port-input" class="input-field w-full p-3 rounded-lg hidden mb-3" placeholder="Port (default: 8080)" value="8080">
-                        <!-- Serve Path input for serve mode, hidden by default -->
-                        <input type="text" id="serve-path-input" class="input-field w-full p-3 rounded-lg hidden" placeholder="Base URL path (default: /)" value="/">
                     </div>
-                </div>
-
-                <div class="mb-6">
                     <div id="destination-field">
                         <label for="destination" class="block text-sm font-bold mb-2 text-primary-color">Destination Path</label>
                         <input type="text" id="destination" class="input-field w-full p-3 rounded-lg" value="">
                     </div>
                 </div>
 
-                <div class="mb-6">
-                    <label for="additional_flags" class="block text-sm font-bold mb-2 text-primary-color">Additional Flags</label>
-                    <input type="text" id="additional_flags" class="input-field w-full p-3 rounded-lg" value="--azureblob-env-auth --crypt-pass-bad-blocks">
+                <!-- Serve Mode Fields -->
+                <div id="serve-mode-fields" class="mb-6 hidden">
+                    <div id="serve-path-container" class="mb-4">
+                        <label for="serve-path-input" class="block text-sm font-bold mb-2 text-primary-color">Path to serve</label>
+                        <input type="text" id="serve-path-input" class="input-field w-full p-3 rounded-lg" placeholder="Base URL path (default: /)" value="/">
+                    </div>
+                    <div id="serve-protocol-port-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="serve-protocol-select" class="block text-sm font-bold mb-2 text-primary-color">Protocol</label>
+                            <select id="serve-protocol-select" class="input-field w-full p-3 rounded-lg custom-select">
+                                <option value="http">HTTP</option>
+                                <option value="webdav">WebDAV</option>
+                                <option value="ftp">FTP</option>
+                                <option value="sftp">SFTP</option>
+                                <option value="dlna">DLNA</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="serve-port-input" class="block text-sm font-bold mb-2 text-primary-color">Port</label>
+                            <input type="text" id="serve-port-input" class="input-field w-full p-3 rounded-lg" placeholder="Port (default: 8080)" value="8080">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Sliders and Dropdowns -->
@@ -217,6 +223,10 @@
                             <option value="DEBUG">DEBUG</option>
                         </select>
                     </div>
+                    <div>
+                        <label for="additional_flags" class="block text-sm font-bold mb-2 text-primary-color">Additional Flags</label>
+                        <input type="text" id="additional_flags" class="input-field w-full p-3 rounded-lg" value="--azureblob-env-auth --crypt-pass-bad-blocks">
+                    </div>
                 </div>
 
                 <!-- Checkboxes -->
@@ -239,7 +249,7 @@
                 <div class="flex flex-wrap gap-4 justify-center mb-6">
                     <button id="start-rclone-btn" class="btn-primary w-full md:w-auto flex-1"><i class="fas fa-play mr-2"></i> Start</button>
                     <button id="stop-rclone-btn" class="btn-danger w-full md:w-auto flex-1 hidden"><i class="fas fa-stop mr-2"></i> Stop</button>
-                    <button onclick="downloadLogs()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-download mr-2"></i> Download Rclone Log</button>
+                    <button onclick="downloadLogs()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-download mr-2"></i> Download Log</button>
                     <button onclick="clearRcloneOutput()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-eraser mr-2"></i> Clear Output</button>
                 </div>
 
@@ -265,6 +275,19 @@
                     <button id="terminal-history-btn" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-history mr-2"></i> History</button>
                     <button onclick="clearTerminalOutput()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-eraser mr-2"></i> Clear Output</button>
                     <button onclick="downloadTerminalLogs()" class="btn-secondary w-full md:w-auto flex-1"><i class="fas fa-download mr-2"></i> Download Terminal Log</button>
+                </div>
+
+                <!-- Terminal History Box (replaces modal) -->
+                <div id="terminalHistoryBox" class="terminal-history-box hidden mb-6">
+                    <h3 class="text-xl font-semibold mb-3 text-accent-color flex items-center">
+                        <i class="fas fa-history mr-2"></i> Recent Terminal Commands
+                    </h3>
+                    <div id="terminalHistoryContent" class="space-y-3 max-h-60 overflow-y-auto mb-4">
+                        <!-- History items will be loaded here -->
+                    </div>
+                    <div class="flex justify-end">
+                        <button id="hideTerminalHistoryBtn" class="btn-secondary"><i class="fas fa-eye-slash mr-2"></i> Hide History</button>
+                    </div>
                 </div>
 
                 <div class="relative">
@@ -311,21 +334,6 @@
             <div class="flex justify-end space-x-4">
                 <button id="confirmStopAndStartBtn" class="btn-danger"><i class="fas fa-stop mr-2"></i> Stop and Start New</button>
                 <button id="cancelStopAndStartBtn" class="btn-secondary"><i class="fas fa-times-circle mr-2"></i> Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Terminal History Modal -->
-    <div id="terminalHistoryModal" class="modal hidden">
-        <div class="modal-content card rounded-xl p-8 shadow-2xl">
-            <h2 class="text-2xl font-bold mb-4 text-primary-color flex items-center">
-                <i class="fas fa-history mr-3"></i> Terminal Command History
-            </h2>
-            <div id="terminalHistoryContent" class="space-y-3 max-h-96 overflow-y-auto mb-6">
-                <!-- History items will be loaded here -->
-            </div>
-            <div class="flex justify-end">
-                <button id="closeTerminalHistoryModal" class="btn-secondary"><i class="fas fa-times-circle mr-2"></i> Close</button>
             </div>
         </div>
     </div>
