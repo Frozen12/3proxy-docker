@@ -193,6 +193,9 @@ def init_db():
 with app.app_context():
     create_initial_dirs()
     init_db()
+    # Removed session.clear() as it causes issues with Gunicorn worker boot.
+    # In ephemeral container environments, sessions are typically lost on restart anyway.
+    print("Application startup complete.")
 
 # --- Global Variables for Rclone and Terminal Processes ---
 # Rclone process management
@@ -245,15 +248,6 @@ def load_initial_process_states():
     if terminal_state['running']:
         print(f"Terminal was running with command: {terminal_state['command']}")
         # Same for terminal
-
-with app.app_context():
-    create_initial_dirs()
-    init_db()
-    # Clear all sessions on startup to force re-login
-    # This is a simple way to ensure users are logged out after a server restart.
-    # In a multi-instance deployment, a shared session store would be needed.
-    session.clear()
-    print("All sessions cleared on application startup.")
 
 # --- Authentication Decorator ---
 def login_required(f):
