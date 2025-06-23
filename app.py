@@ -193,9 +193,6 @@ def init_db():
 with app.app_context():
     create_initial_dirs()
     init_db()
-    # Removed session.clear() as it causes issues with Gunicorn worker boot.
-    # In ephemeral container environments, sessions are typically lost on restart anyway.
-    print("Application startup complete.")
 
 # --- Global Variables for Rclone and Terminal Processes ---
 # Rclone process management
@@ -248,6 +245,9 @@ def load_initial_process_states():
     if terminal_state['running']:
         print(f"Terminal was running with command: {terminal_state['command']}")
         # Same for terminal
+
+with app.app_context():
+    load_initial_process_states()
 
 # --- Authentication Decorator ---
 def login_required(f):

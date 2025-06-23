@@ -166,6 +166,11 @@ body {
     outline: none;
 }
 
+/* Custom themed border */
+.border-themed {
+    border-color: var(--border-color);
+}
+
 /* Button Styling */
 .btn-primary, .btn-secondary, .btn-danger {
     padding: 0.75rem 1.5rem;
@@ -178,6 +183,10 @@ body {
     text-align: center;
     cursor: pointer;
     border: none;
+}
+
+.btn-primary i, .btn-secondary i, .btn-danger i {
+    margin-right: 0.5rem; /* Add spacing between icon and text */
 }
 
 .btn-primary {
@@ -221,11 +230,6 @@ body {
 .btn-danger:active {
     transform: translateY(0.5px);
     box-shadow: none;
-}
-
-/* Adjust spacing for icons in buttons */
-.btn-primary i, .btn-secondary i, .btn-danger i {
-    margin-right: 0.5rem; /* Adjust as needed for desired spacing */
 }
 
 /* Navigation Buttons */
@@ -291,18 +295,11 @@ body {
     min-height: 50px;
     overflow-y: auto;
     max-height: 150px;
-    font-family: 'Source Code Pro', monospace; /* Apply Source Code Pro */
-    font-size: 0.8rem; /* Reduced font size */
 }
 .major-steps-output .success { color: var(--success-color); }
 .major-steps-output .error { color: var(--error-color); }
 .major-steps-output .warning { color: var(--warning-color); }
 .major-steps-output .info { color: var(--info-color); }
-
-/* Time display font size adjustments */
-.text-xs { /* For desktop time display in recent commands */
-    font-size: 0.875rem; /* Increased from 0.75rem (12px) to 14px */
-}
 
 /* Scrollbar Styling */
 /* For Webkit browsers (Chrome, Safari) */
@@ -335,8 +332,7 @@ html {
 
 /* Slider Styling (Webkit/Firefox) */
 .slider {
-    -webkit-appearance: none;
-    appearance: none; /* Added standard property */
+    appearance: none; /* Removed -webkit-appearance */
     width: 100%;
     height: 8px;
     background: var(--input-bg-color);
@@ -498,16 +494,13 @@ html {
 
 /* Custom Select Styling */
 select.custom-select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
+    appearance: none; /* Removed -webkit-appearance and -moz-appearance */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='var(--primary-color)'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 1.25rem;
     padding-right: 2.5rem;
     color: var(--text-color);
-    font-family: 'Source Code Pro', monospace; /* Apply Source Code Pro */
 }
 
 /* Styles for options within the custom select dropdown */
@@ -536,8 +529,7 @@ select.custom-select option:checked {
     font-family: 'Montserrat', sans-serif;
     font-weight: 700;
     background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
-    background-clip: text; /* Added standard property */
-    -webkit-background-clip: text;
+    background-clip: text; /* Removed -webkit-background-clip */
     -webkit-text-fill-color: transparent;
     font-size: 2.5rem;
 }
@@ -555,7 +547,6 @@ header {
     transition: transform 0.3s ease-out, opacity 0.3s ease-out;
     background-color: rgba(var(--card-bg-color-rgb), 0.98);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid var(--card-bg-color); /* Changed header border to card-bg-color */
 }
 
 /* Theme dropdown with increased opacity for mobile accessibility */
@@ -565,13 +556,10 @@ header {
     border: 2px solid var(--border-color);
 }
 
-/* Terminal History Box styling */
-.terminal-history-box {
-    background-color: var(--card-bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 0.75rem;
-    padding: 1.5rem;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+/* Notepad font size */
+#notepad-content {
+    font-family: 'Source Code Pro', monospace;
+    font-size: 0.9rem; /* Reduced font size for notes */
 }
 
 /* For better mobile experience */
@@ -648,7 +636,6 @@ header {
         padding: 0.75rem 1.25rem;
         font-size: 0.9rem;
         white-space: nowrap;
-        flex: 1; /* Make them take equal width */
     }
     
     .app-title {
@@ -684,11 +671,6 @@ header {
     #source-field-container .input-field:last-child,
     #source-field-container .custom-select:last-child {
         margin-bottom: 0;
-    }
-
-    /* Mobile time display font size */
-    .text-xs { /* For mobile time display in recent commands */
-        font-size: 1.125rem; /* Increased from 0.75rem (12px) to 18px (3 times bigger) */
     }
 }
 

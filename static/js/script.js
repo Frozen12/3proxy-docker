@@ -16,8 +16,6 @@ const urlInput = document.getElementById('url-input');
 const serveProtocolSelect = document.getElementById('serve-protocol-select');
 const servePortInput = document.getElementById('serve-port-input');
 const servePathInput = document.getElementById('serve-path-input');
-const servePathContainer = document.getElementById('serve-path-container'); // New reference
-const serveProtocolPortContainer = document.getElementById('serve-protocol-port-container'); // New reference
 const destinationField = document.getElementById('destination-field');
 const destinationInput = document.getElementById('destination');
 const transfersInput = document.getElementById('transfers');
@@ -56,9 +54,9 @@ const terminalConfirmMessage = document.getElementById('terminalConfirmMessage')
 const confirmStopAndStartBtn = document.getElementById('confirmStopAndStartBtn');
 const cancelStopAndStartBtn = document.getElementById('cancelStopAndStartBtn');
 const terminalHistoryBtn = document.getElementById('terminal-history-btn');
-const terminalHistoryBox = document.getElementById('terminalHistoryBox'); // New reference for the history box
+const terminalHistoryModal = document.getElementById('terminalHistoryModal');
 const terminalHistoryContent = document.getElementById('terminalHistoryContent');
-const hideTerminalHistoryBtn = document.getElementById('hideTerminalHistoryBtn'); // New reference for hide button
+const closeTerminalHistoryModal = document.getElementById('closeTerminalHistoryModal');
 
 const recentRcloneTransfersDiv = document.getElementById('recentRcloneTransfers');
 const recentTerminalCommandsDiv = document.getElementById('recentTerminalCommands');
@@ -75,7 +73,6 @@ let rcloneUserScrolledUp = false;
 let terminalUserScrolledUp = false;
 let pendingTerminalCommand = null;
 let terminalCommandHistory = []; // For client-side history display
-let terminalHistoryVisible = false; // Track visibility of terminal history box
 
 // For header scroll behavior
 let lastScrollY = 0;
@@ -139,10 +136,6 @@ async function checkProcessStates() {
             executeTerminalBtn.classList.add('hidden');
             stopTerminalBtn.classList.remove('hidden');
             showTerminalSpinner("Command running...");
-            // Hide history box if a new command starts and it wasn't explicitly opened/filled
-            if (terminalHistoryVisible && !terminalHistoryBox.dataset.manualOpen) {
-                hideTerminalHistory();
-            }
         } else {
             executeTerminalBtn.classList.remove('hidden');
             stopTerminalBtn.classList.add('hidden');
@@ -225,10 +218,6 @@ function showSection(sectionId) {
     } else if (sectionId === 'recent-commands') {
         loadRecentCommands();
     }
-    // Hide terminal history box when switching sections
-    if (terminalHistoryBox && sectionId !== 'web-terminal') {
-        hideTerminalHistory();
-    }
 }
 
 function showRcloneSpinner(message = "Transferring...") {
@@ -308,17 +297,18 @@ function toggleRemoteField() {
     // Hide all mode-specific inputs initially
     if (sourceInput) sourceInput.classList.add('hidden');
     if (urlInput) urlInput.classList.add('hidden');
-    if (servePathContainer) servePathContainer.classList.add('hidden'); // Hide new serve containers
-    if (serveProtocolPortContainer) serveProtocolPortContainer.classList.add('hidden'); // Hide new serve containers
-
+    if (serveProtocolSelect) serveProtocolSelect.classList.add('hidden');
+    if (servePortInput) servePortInput.classList.add('hidden');
+    if (servePathInput) servePathInput.classList.add('hidden');
     if (sourceLabel) sourceLabel.textContent = 'Source Path'; // Reset label text
     if (sourceLabel) sourceLabel.classList.remove('hidden'); // Ensure label is visible by default
+    const serveProtocolLabel = document.getElementById('serve-protocol-label');
+    if (serveProtocolLabel) serveProtocolLabel.classList.add('hidden'); // Hide protocol label by default
 
     // Reset required attributes
     if (sourceInput) sourceInput.removeAttribute('required');
     if (urlInput) urlInput.removeAttribute('required');
     if (destinationInput) destinationInput.removeAttribute('required');
-    if (servePathInput) servePathInput.removeAttribute('required'); // Reset for serve path
 
     // Show/hide source and destination fields based on mode type
     if (modesTwoRemotes.includes(selectedMode)) {
@@ -345,14 +335,16 @@ function toggleRemoteField() {
         if (destinationField) destinationField.classList.add('hidden');
         if (sourceLabel) sourceLabel.textContent = 'Path/Remote';
     } else if (modesServe.includes(selectedMode)) {
-        if (sourceInput) sourceInput.classList.add('hidden'); // Hide general source input
-        if (sourceLabel) sourceLabel.classList.add('hidden'); // Hide general source label
-
-        if (servePathContainer) servePathContainer.classList.remove('hidden'); // Show serve path container
-        if (serveProtocolPortContainer) serveProtocolPortContainer.classList.remove('hidden'); // Show serve protocol/port container
-        if (servePathInput) servePathInput.setAttribute('required', 'true'); // Set serve path as required
-
+        if (serveProtocolSelect) serveProtocolSelect.classList.remove('hidden');
+        if (serveProtocolLabel) serveProtocolLabel.classList.remove('hidden'); // Show protocol label
+        if (servePortInput) servePortInput.classList.remove('hidden');
+        if (servePathInput) servePathInput.classList.remove('hidden');
+        if (sourceInput) {
+            sourceInput.classList.remove('hidden');
+            sourceInput.setAttribute('required', 'true');
+        }
         if (destinationField) destinationField.classList.add('hidden');
+        if (sourceLabel) sourceLabel.textContent = 'Path to serve';
     } else if (modesNoArgs.includes(selectedMode)) {
         if (sourceInput) sourceInput.classList.add('hidden');
         if (destinationField) destinationField.classList.add('hidden');
@@ -410,6 +402,7 @@ async function startRcloneTransfer() {
     const destination = destinationInput ? destinationInput.value.trim() : '';
     let serveProtocol = '';
     let servePort = '';
+    let servePath = '';
 
     // Handle source/URL/path-to-serve based on selected mode
     if (modesCopyUrl.includes(mode)) {
@@ -419,9 +412,10 @@ async function startRcloneTransfer() {
             return;
         }
     } else if (modesServe.includes(mode)) {
-        source = servePathInput ? servePathInput.value.trim() : ''; // Corrected to use servePathInput
+        source = sourceInput ? sourceInput.value.trim() : '';
         serveProtocol = serveProtocolSelect ? serveProtocolSelect.value : '';
         servePort = servePortInput ? servePortInput.value.trim() : '8080';
+        servePath = servePathInput ? servePathInput.value.trim() : '/';
         if (!source) {
             logMessage(rcloneMajorStepsOutput, "Path to serve is required for serve mode.", 'error');
             return;
@@ -466,7 +460,7 @@ async function startRcloneTransfer() {
         dry_run: dryRunCheckbox ? dryRunCheckbox.checked : false,
         serve_protocol: serveProtocol,
         serve_port: servePort,
-        serve_path: source // This is correct, as 'source' now holds the path to serve
+        serve_path: servePath
     };
 
     try {
@@ -666,11 +660,6 @@ async function executeTerminalCommand(command = null) {
     if (executeTerminalBtn) executeTerminalBtn.classList.add('hidden');
     if (stopTerminalBtn) stopTerminalBtn.classList.remove('hidden');
 
-    // Hide history box if a new command starts and it wasn't explicitly opened/filled
-    if (terminalHistoryVisible && !terminalHistoryBox.dataset.manualOpen) {
-        hideTerminalHistory();
-    }
-
     try {
         const response = await fetch('/execute_terminal_command', {
             method: 'POST',
@@ -791,7 +780,6 @@ async function loadRecentCommands() {
         const terminalCommands = data.terminal_commands;
         const rcloneTransfers = data.rclone_transfers;
 
-        // Populate Recent Commands tab
         if (recentTerminalCommandsDiv) {
             recentTerminalCommandsDiv.innerHTML = '';
             if (terminalCommands.length === 0) {
@@ -866,40 +854,9 @@ async function loadRecentCommands() {
             }
         }
 
-        // Populate Terminal History Box
-        if (terminalHistoryBox && terminalHistoryContent) {
-            terminalHistoryContent.innerHTML = ''; // Clear previous content
-            if (terminalCommands.length === 0) {
-                terminalHistoryContent.innerHTML = '<p class="text-text-color">No recent terminal commands.</p>';
-            } else {
-                terminalCommands.slice(0, 5).forEach((item) => { // Show latest 5
-                    const div = document.createElement('div');
-                    div.className = 'bg-input-bg-color p-3 rounded-md border border-border-color flex justify-between items-center';
-                    div.innerHTML = `
-                        <div>
-                            <code class="text-primary-color text-sm">${escapeHtml(item.command)}</code>
-                            <p class="text-xs text-gray-400 mt-1">Status: <span class="${item.status === 'Success' ? 'text-success-color' : (item.status === 'Failed' ? 'text-error-color' : (item.status === 'Running' ? 'text-info-color' : 'text-warning-color'))}">${item.status}</span> | ${new Date(item.timestamp).toLocaleString()}</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button class="btn-secondary btn-fill-command px-3 py-1 text-xs" data-command="${escapeHtml(item.command)}">
-                                <i class="fas fa-fill"></i> Fill
-                            </button>
-                            <button class="btn-danger btn-delete-command px-3 py-1 text-xs" data-id="${item.id}">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </div>
-                    `;
-                    terminalHistoryContent.appendChild(div);
-                });
-            }
-        }
-
-        // Add event listeners for fill and delete buttons (for both recent commands tab and terminal history box)
+        // Add event listeners for fill and delete buttons
         document.querySelectorAll('.btn-fill-command').forEach(button => {
-            button.onclick = (e) => {
-                fillTerminalCommand(e.target.dataset.command || e.target.closest('button').dataset.command);
-                hideTerminalHistory(); // Hide history after filling
-            };
+            button.onclick = (e) => fillTerminalCommand(e.target.dataset.command || e.target.closest('button').dataset.command);
         });
         document.querySelectorAll('.btn-delete-command').forEach(button => {
             button.onclick = (e) => deleteTerminalCommand(e.target.dataset.id || e.target.closest('button').dataset.id);
@@ -915,7 +872,6 @@ async function loadRecentCommands() {
         console.error("Error loading recent commands:", error);
         if (recentTerminalCommandsDiv) recentTerminalCommandsDiv.innerHTML = '<p class="text-error-color">Error loading recent terminal commands.</p>';
         if (recentRcloneTransfersDiv) recentRcloneTransfersDiv.innerHTML = '<p class="text-error-color">Error loading recent Rclone transfers.</p>';
-        if (terminalHistoryContent) terminalHistoryContent.innerHTML = '<p class="text-error-color">Error loading terminal history.</p>';
     }
 }
 
@@ -1030,26 +986,14 @@ function fillTerminalCommand(command) {
     if (terminalCommandInput) {
         terminalCommandInput.value = command;
         showSection('web-terminal'); // Switch to terminal tab
-        terminalHistoryBox.dataset.manualOpen = 'true'; // Mark as manually opened
     }
 }
 
 function fillRcloneTransfer(data) {
     if (modeSelect) modeSelect.value = data.mode;
-    
-    // Handle source based on mode
-    if (data.mode === 'serve') {
-        if (servePathInput) servePathInput.value = data.source;
-        if (serveProtocolSelect) serveProtocolSelect.value = data.protocol;
-        // Assuming servePort is not part of data.flags, it might need to be handled if it was saved.
-        // For now, it will retain its default or last manually set value.
-    } else if (data.mode === 'copyurl') {
-        if (urlInput) urlInput.value = data.source;
-    } else {
-        if (sourceInput) sourceInput.value = data.source;
-    }
-
+    if (sourceInput) sourceInput.value = data.source;
     if (destinationInput) destinationInput.value = data.destination;
+    if (serveProtocolSelect) serveProtocolSelect.value = data.protocol;
     if (additionalFlagsInput) additionalFlagsInput.value = data.flags;
     
     updateModeDescription(); // Re-evaluate UI based on new mode
@@ -1082,21 +1026,33 @@ function addCommandToLocalHistory(command) {
     }
 }
 
-function showTerminalHistory() {
-    if (terminalHistoryBox) {
-        terminalHistoryBox.classList.remove('hidden');
-        terminalHistoryVisible = true;
-        terminalHistoryBox.dataset.manualOpen = 'true'; // Mark as manually opened
-        loadRecentCommands(); // Load content from backend
+function showTerminalCommandHistory() {
+    if (terminalHistoryContent) {
+        terminalHistoryContent.innerHTML = '';
+        if (terminalCommandHistory.length === 0) {
+            terminalHistoryContent.innerHTML = '<p class="text-text-color">No command history yet.</p>';
+        } else {
+            terminalCommandHistory.forEach((cmd, index) => {
+                const div = document.createElement('div');
+                div.className = 'bg-input-bg-color p-2 rounded-md border border-border-color flex justify-between items-center mb-2';
+                div.innerHTML = `
+                    <code class="text-primary-color text-sm flex-1 mr-2">${escapeHtml(cmd)}</code>
+                    <button class="btn-secondary btn-copy-command px-2 py-1 text-xs" data-command="${escapeHtml(cmd)}">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                `;
+                terminalHistoryContent.appendChild(div);
+            });
+            // Add event listeners for copy buttons in the modal
+            document.querySelectorAll('#terminalHistoryContent .btn-copy-command').forEach(button => {
+                button.onclick = (e) => {
+                    copyToClipboard(e.target.dataset.command || e.target.closest('button').dataset.command);
+                    if (terminalHistoryModal) terminalHistoryModal.classList.add('hidden'); // Close modal after copy
+                };
+            });
+        }
     }
-}
-
-function hideTerminalHistory() {
-    if (terminalHistoryBox) {
-        terminalHistoryBox.classList.add('hidden');
-        terminalHistoryVisible = false;
-        terminalHistoryBox.removeAttribute('data-manual-open'); // Remove manual open flag
-    }
+    if (terminalHistoryModal) terminalHistoryModal.classList.remove('hidden');
 }
 
 // --- Notepad Logic (Database Integrated) ---
@@ -1342,11 +1298,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     if (terminalHistoryBtn) {
-        terminalHistoryBtn.addEventListener('click', showTerminalHistory); // Changed to showTerminalHistory
+        terminalHistoryBtn.addEventListener('click', showTerminalCommandHistory);
     }
-    if (hideTerminalHistoryBtn) { // New hide button for terminal history
-        hideTerminalHistoryBtn.addEventListener('click', hideTerminalHistory);
+    if (closeTerminalHistoryModal) {
+        closeTerminalHistoryModal.addEventListener('click', () => {
+            if (terminalHistoryModal) terminalHistoryModal.classList.add('hidden');
+        });
     }
+
 
     if (confirmStopAndStartBtn) {
         confirmStopAndStartBtn.addEventListener('click', async () => {
@@ -1380,8 +1339,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 pendingTerminalCommand = null;
                 resetTerminalButtons();
             }
-            if (terminalHistoryBox && !terminalHistoryBox.classList.contains('hidden')) { // Changed from modal to box
-                hideTerminalHistory();
+            if (terminalHistoryModal && !terminalHistoryModal.classList.contains('hidden')) {
+                terminalHistoryModal.classList.add('hidden');
             }
         }
     });
