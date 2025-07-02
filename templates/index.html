@@ -160,7 +160,7 @@
                                 <label for="serve-protocol-select" class="block text-sm font-bold mb-2 text-primary-color">Protocol</label>
                                 <select id="serve-protocol-select" class="input-field w-full p-3 rounded-lg custom-select">
                                     <option value="http">HTTP</option>
-                                    <option value="webdav">WebDAV</option>
+                                    <option value="webdav" selected>WebDAV</option>
                                     <option value="ftp">FTP</option>
                                     <option value="sftp">SFTP</option>
                                     <option value="dlna">DLNA</option>
@@ -188,16 +188,19 @@
                         <input type="range" id="transfers" min="1" max="20" value="2" step="1" class="w-full slider">
                     </div>
                     <div>
-                        <label for="checkers" class="block text-sm font-bold mb-2 text-primary-color">Checkers: <span id="checkers-value">3</span></label>
-                        <input type="range" id="checkers" min="1" max="20" value="3" step="1" class="w-full slider">
+                        <label for="checkers" class="block text-sm font-bold mb-2 text-primary-color">Checkers: <span id="checkers-value">1</span></label>
+                        <input type="range" id="checkers" min="1" max="20" value="1" step="1" class="w-full slider">
                     </div>
                     <div>
                         <label for="buffer_size" class="block text-sm font-bold mb-2 text-primary-color">Buffer Size</label>
                         <select id="buffer_size" class="input-field w-full p-3 rounded-lg custom-select">
+                            <option value="256K">256K</option>
+                            <option value="512K">512K</option>
+                            <option value="1M" selected>1M</option>
                             <option value="2M">2M</option>
                             <option value="4M">4M</option>
                             <option value="8M">8M</option>
-                            <option value="16M" selected>16M</option>
+                            <option value="16M">16M</option>
                             <option value="32M">32M</option>
                             <option value="64M">64M</option>
                             <option value="128M">128M</option>
@@ -213,6 +216,8 @@
                             <option value="size,mixed,50" selected>size,mixed,50</option>
                             <option value="size,mixed,25">size,mixed,25</option>
                             <option value="size,mixed,10">size,mixed,10</option>
+                            <option value="name,ascending">name,ascending</option>
+                            <option value="name,descending">name,descending</option>
                         </select>
                     </div>
                     <div>
