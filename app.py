@@ -529,7 +529,7 @@ def execute_rclone():
 
     rclone_env = os.environ.copy()
     rclone_env['RCLONE_CONFIG'] = RCLONE_CONFIG_PATH
-    rclone_env['RCLONE_FAST_LIST'] = 'true'
+    # rclone_env['RCLONE_FAST_LIST'] = 'true'
     rclone_env['RCLONE_DRIVE_TPSLIMIT'] = '3'
     rclone_env['RCLONE_DRIVE_ACKNOWLEDGE_ABUSE'] = 'true'
     rclone_env['RCLONE_LOG_FILE'] = LOG_FILE
