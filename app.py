@@ -4,6 +4,7 @@ import subprocess
 import threading
 import json
 import time
+import logging
 from datetime import timedelta, datetime
 from flask import Flask, render_template, request, jsonify, Response, redirect, url_for, session
 from functools import wraps
@@ -11,6 +12,21 @@ import zipfile
 import shutil
 import re
 import sqlite3
+
+# --- Runtime Logging for Debugging ---
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('/tmp/app_runtime.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+logger.info("Starting Rclone WebGUI...")
+logger.info(f"Python version: {sys.version}")
+logger.info(f"App directory: {os.path.dirname(os.path.abspath(__file__))}")
 
 # Ensure the application directory is in the Python path
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
