@@ -3,7 +3,6 @@ FROM python:3.13-alpine
 
 # Set environment variables for Rclone installation
 ENV DEBIAN_FRONTEND noninteractive
-ENV RCLONE_VERSION=v1.73.5
 
 # Install necessary system dependencies for Alpine:
 # curl for downloading rclone, unzip for extracting
@@ -14,19 +13,19 @@ RUN apk add --no-cache \
     build-base \
     && rm -rf /var/cache/apk/*
 
-# Install rclone using a tagged version for reproducibility
+# Install rclone using the "current" link for latest stable version
 RUN set -eux; \
-    # Download the rclone zip archive with specific version using curl
-    curl -fsSL "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-amd64.zip" -o /tmp/rclone.zip; \
+    # Download the latest rclone zip archive
+    curl -fsSL "https://downloads.rclone.org/rclone-current-linux-amd64.zip" -o /tmp/rclone.zip; \
     \
-    # Unzip the file - rclone creates a directory like rclone-v1.73.5-linux-amd64
+    # Unzip the file - rclone creates a directory like rclone-*-linux-amd64
     unzip -q /tmp/rclone.zip -d /tmp/; \
     \
-    # Move the rclone binary to /usr/local/bin (we know the exact path)
-    mv "/tmp/rclone-${RCLONE_VERSION}-linux-amd64/rclone" /usr/local/bin/; \
+    # Move the rclone binary to /usr/local/bin (we know the exact path pattern)
+    mv /tmp/rclone-*-linux-amd64/rclone /usr/local/bin/; \
     \
     # Clean up temporary files and directories
-    rm -rf /tmp/rclone.zip "/tmp/rclone-${RCLONE_VERSION}-linux-amd64"; \
+    rm -rf /tmp/rclone.zip /tmp/rclone-*-linux-amd64; \
     \
     # Make rclone executable
     chmod +x /usr/local/bin/rclone; \
