@@ -1,68 +1,3 @@
-// --- DOM Element References ---
-const setupSection = document.getElementById('setup-section');
-const rcloneTransferSection = document.getElementById('rclone-transfer-section');
-const webTerminalSection = document.getElementById('web-terminal-section');
-const recentCommandsSection = document.getElementById('recent-commands-section');
-const notepadSection = document.getElementById('notepad-section');
-
-const navButtons = document.querySelectorAll('.nav-button');
-
-const modeSelect = document.getElementById('mode');
-const modeDescription = document.getElementById('mode-description');
-const sourceFieldContainer = document.getElementById('source-field-container');
-const sourceLabel = document.getElementById('source-label');
-const sourceInput = document.getElementById('source');
-const urlInput = document.getElementById('url-input');
-const serveProtocolSelect = document.getElementById('serve-protocol-select');
-const servePortInput = document.getElementById('serve-port-input');
-const servePathInput = document.getElementById('serve-path-input');
-const destinationField = document.getElementById('destination-field');
-const destinationInput = document.getElementById('destination');
-const transfersInput = document.getElementById('transfers');
-const transfersValueSpan = document.getElementById('transfers-value');
-const checkersInput = document.getElementById('checkers');
-const checkersValueSpan = document.getElementById('checkers-value');
-const bufferSizeSelect = document.getElementById('buffer_size');
-const orderSelect = document.getElementById('order');
-const loglevelSelect = document.getElementById('loglevel');
-const additionalFlagsInput = document.getElementById('additional_flags');
-const useDriveTrashCheckbox = document.getElementById('use_drive_trash');
-const serviceAccountCheckbox = document.getElementById('service_account');
-const dryRunCheckbox = document.getElementById('dry_run');
-
-const startRcloneBtn = document.getElementById('start-rclone-btn');
-const stopRcloneBtn = document.getElementById('stop-rclone-btn');
-const rcloneLiveOutput = document.getElementById('rcloneLiveOutput');
-const rcloneMajorStepsOutput = document.getElementById('rclone-major-steps');
-const rcloneSpinner = document.getElementById('rclone-spinner');
-const rcloneSpinnerText = document.getElementById('rclone-spinner-text');
-
-const rcloneConfFileInput = document.getElementById('rclone_conf_file_input');
-const rcloneConfFileNameDisplay = document.getElementById('rclone-conf-file-name');
-const saZipFileInput = document.getElementById('sa_zip_file_input');
-const saZipFileNameDisplay = document.getElementById('sa-zip-file-name');
-const majorStepsOutput = document.getElementById('majorStepsOutput');
-
-const terminalCommandInput = document.getElementById('terminalCommand');
-const executeTerminalBtn = document.getElementById('execute-terminal-btn');
-const stopTerminalBtn = document.getElementById('stop-terminal-btn');
-const terminalOutput = document.getElementById('terminalOutput');
-const terminalSpinner = document.getElementById('terminal-spinner');
-const terminalSpinnerText = document.getElementById('terminal-spinner-text');
-const terminalConfirmModal = document.getElementById('terminalConfirmModal');
-const terminalConfirmMessage = document.getElementById('terminalConfirmMessage');
-const confirmStopAndStartBtn = document.getElementById('confirmStopAndStartBtn');
-const cancelStopAndStartBtn = document.getElementById('cancelStopAndStartBtn');
-const terminalHistoryBtn = document.getElementById('terminal-history-btn');
-const terminalHistoryModal = document.getElementById('terminalHistoryModal');
-const terminalHistoryContent = document.getElementById('terminalHistoryContent');
-const closeTerminalHistoryModal = document.getElementById('closeTerminalHistoryModal');
-
-const recentRcloneTransfersDiv = document.getElementById('recentRcloneTransfers');
-const recentTerminalCommandsDiv = document.getElementById('recentTerminalCommands');
-
-const notepadContent = document.getElementById('notepad-content');
-
 // --- Global State Variables ---
 let rclonePollingInterval = null;
 let terminalPollingInterval = null;
@@ -73,6 +8,26 @@ let rcloneUserScrolledUp = false;
 let terminalUserScrolledUp = false;
 let pendingTerminalCommand = null;
 let terminalCommandHistory = []; // For client-side history display
+
+// --- DOM Element References (initialized in DOMContentLoaded) ---
+let setupSection, rcloneTransferSection, webTerminalSection, recentCommandsSection, notepadSection;
+let navButtons;
+let modeSelect, modeDescription, sourceFieldContainer, sourceLabel, sourceInput;
+let urlInput, serveProtocolSelect, servePortInput, servePathInput;
+let destinationField, destinationInput;
+let transfersInput, transfersValueSpan, checkersInput, checkersValueSpan;
+let bufferSizeSelect, orderSelect, loglevelSelect, additionalFlagsInput;
+let useDriveTrashCheckbox, serviceAccountCheckbox, dryRunCheckbox;
+let startRcloneBtn, stopRcloneBtn, rcloneLiveOutput, rcloneMajorStepsOutput;
+let rcloneSpinner, rcloneSpinnerText;
+let rcloneConfFileInput, rcloneConfFileNameDisplay, saZipFileInput, saZipFileNameDisplay;
+let majorStepsOutput;
+let terminalCommandInput, executeTerminalBtn, stopTerminalBtn, terminalOutput;
+let terminalSpinner, terminalSpinnerText, terminalConfirmModal, terminalConfirmMessage;
+let confirmStopAndStartBtn, cancelStopAndStartBtn, terminalHistoryBtn;
+let terminalHistoryModal, terminalHistoryContent, closeTerminalHistoryModal;
+let recentRcloneTransfersDiv, recentTerminalCommandsDiv;
+let notepadContent, header;
 
 // Toast notification system
 function showToast(message, type = 'info', duration = 3000) {
@@ -1444,36 +1399,254 @@ function logout() {
     window.location.href = '/logout';
 }
 
-// --- Theme Changer ---
+// --- Initialize Application ---
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Initialize DOM Element References ---
+    header = document.querySelector('header');
+    setupSection = document.getElementById('setup-section');
+    rcloneTransferSection = document.getElementById('rclone-transfer-section');
+    webTerminalSection = document.getElementById('web-terminal-section');
+    recentCommandsSection = document.getElementById('recent-commands-section');
+    notepadSection = document.getElementById('notepad-section');
+    
+    navButtons = document.querySelectorAll('.nav-button');
+    
+    modeSelect = document.getElementById('mode');
+    modeDescription = document.getElementById('mode-description');
+    sourceFieldContainer = document.getElementById('source-field-container');
+    sourceLabel = document.getElementById('source-label');
+    sourceInput = document.getElementById('source');
+    urlInput = document.getElementById('url-input');
+    serveProtocolSelect = document.getElementById('serve-protocol-select');
+    servePortInput = document.getElementById('serve-port-input');
+    servePathInput = document.getElementById('serve-path-input');
+    destinationField = document.getElementById('destination-field');
+    destinationInput = document.getElementById('destination');
+    transfersInput = document.getElementById('transfers');
+    transfersValueSpan = document.getElementById('transfers-value');
+    checkersInput = document.getElementById('checkers');
+    checkersValueSpan = document.getElementById('checkers-value');
+    bufferSizeSelect = document.getElementById('buffer_size');
+    orderSelect = document.getElementById('order');
+    loglevelSelect = document.getElementById('loglevel');
+    additionalFlagsInput = document.getElementById('additional_flags');
+    useDriveTrashCheckbox = document.getElementById('use_drive_trash');
+    serviceAccountCheckbox = document.getElementById('service_account');
+    dryRunCheckbox = document.getElementById('dry_run');
+    
+    startRcloneBtn = document.getElementById('start-rclone-btn');
+    stopRcloneBtn = document.getElementById('stop-rclone-btn');
+    rcloneLiveOutput = document.getElementById('rcloneLiveOutput');
+    rcloneMajorStepsOutput = document.getElementById('rclone-major-steps');
+    rcloneSpinner = document.getElementById('rclone-spinner');
+    rcloneSpinnerText = document.getElementById('rclone-spinner-text');
+    
+    rcloneConfFileInput = document.getElementById('rclone_conf_file_input');
+    rcloneConfFileNameDisplay = document.getElementById('rclone-conf-file-name');
+    saZipFileInput = document.getElementById('sa_zip_file_input');
+    saZipFileNameDisplay = document.getElementById('sa-zip-file-name');
+    majorStepsOutput = document.getElementById('majorStepsOutput');
+    
+    terminalCommandInput = document.getElementById('terminalCommand');
+    executeTerminalBtn = document.getElementById('execute-terminal-btn');
+    stopTerminalBtn = document.getElementById('stop-terminal-btn');
+    terminalOutput = document.getElementById('terminalOutput');
+    terminalSpinner = document.getElementById('terminal-spinner');
+    terminalSpinnerText = document.getElementById('terminal-spinner-text');
+    terminalConfirmModal = document.getElementById('terminalConfirmModal');
+    terminalConfirmMessage = document.getElementById('terminalConfirmMessage');
+    confirmStopAndStartBtn = document.getElementById('confirmStopAndStartBtn');
+    cancelStopAndStartBtn = document.getElementById('cancelStopAndStartBtn');
+    terminalHistoryBtn = document.getElementById('terminal-history-btn');
+    terminalHistoryModal = document.getElementById('terminalHistoryModal');
+    terminalHistoryContent = document.getElementById('terminalHistoryContent');
+    closeTerminalHistoryModal = document.getElementById('closeTerminalHistoryModal');
+    
+    recentRcloneTransfersDiv = document.getElementById('recentRcloneTransfers');
+    recentTerminalCommandsDiv = document.getElementById('recentTerminalCommands');
+    
+    notepadContent = document.getElementById('notepad-content');
+    
+    // --- Theme Changer ---
     const themeChangerBtn = document.getElementById('themeChangerBtn');
     const themeDropdown = document.getElementById('themeDropdown');
-
+    
     if (themeChangerBtn && themeDropdown) {
         // Toggle dropdown visibility
         themeChangerBtn.addEventListener('click', (event) => {
             event.stopPropagation();
             themeDropdown.classList.toggle('hidden');
         });
-
+        
         // Close dropdown if clicked outside
         document.addEventListener('click', (event) => {
             if (!themeDropdown.contains(event.target) && !themeChangerBtn.contains(event.target)) {
                 themeDropdown.classList.add('hidden');
             }
         });
-
+        
         // Apply selected theme
         themeDropdown.querySelectorAll('a').forEach(link => {
             link.addEventListener('click', (event) => {
                 event.preventDefault();
                 const theme = event.target.dataset.theme;
-                document.body.className = theme;
+                document.documentElement.className = theme;
                 localStorage.setItem('theme', theme);
                 themeDropdown.classList.add('hidden');
             });
         });
     }
+    
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme') || 'dark-mode';
+    document.documentElement.className = savedTheme;
+    
+    // --- Initial UI Setup ---
+    showSection('rclone-transfer');
+    updateModeDescription();
+    toggleRemoteField();
+    
+    // --- Process State Polling ---
+    startProcessStatePolling();
+    
+    // --- Header Scroll Behavior ---
+    if (header) {
+        window.addEventListener('scroll', handleScroll);
+    }
+    
+    // --- Setup Auto-scrolling for Output Areas ---
+    if (rcloneLiveOutput) {
+        setupAutoScrolling(rcloneLiveOutput);
+    }
+    if (terminalOutput) {
+        setupAutoScrolling(terminalOutput);
+    }
+    
+    // --- File Input Change Listeners ---
+    if (rcloneConfFileInput && rcloneConfFileNameDisplay) {
+        rcloneConfFileInput.addEventListener('change', (event) => {
+            rcloneConfFileNameDisplay.textContent = event.target.files[0] ? event.target.files[0].name : 'No file chosen';
+        });
+    }
+    if (saZipFileInput && saZipFileNameDisplay) {
+        saZipFileInput.addEventListener('change', (event) => {
+            saZipFileNameDisplay.textContent = event.target.files[0] ? event.target.files[0].name : 'No file chosen';
+        });
+    }
+    
+    // --- Rclone Form Events ---
+    if (modeSelect) {
+        modeSelect.addEventListener('change', () => {
+            updateModeDescription();
+            toggleRemoteField();
+        });
+    }
+    if (transfersInput && transfersValueSpan) {
+        transfersInput.addEventListener('input', () => {
+            transfersValueSpan.textContent = transfersInput.value;
+        });
+    }
+    if (checkersInput && checkersValueSpan) {
+        checkersInput.addEventListener('input', () => {
+            checkersValueSpan.textContent = checkersInput.value;
+        });
+    }
+    
+    // --- Rclone Buttons ---
+    if (startRcloneBtn) {
+        startRcloneBtn.addEventListener('click', () => {
+            startRcloneTransfer();
+            // Start SSE after a short delay
+            setTimeout(() => startRcloneSSE(), 1000);
+        });
+    }
+    if (stopRcloneBtn) {
+        stopRcloneBtn.addEventListener('click', () => {
+            stopRcloneTransfer();
+            stopRcloneSSE();
+        });
+    }
+    
+    // --- Terminal Events ---
+    if (executeTerminalBtn) {
+        executeTerminalBtn.addEventListener('click', () => {
+            executeTerminalCommand();
+            // Start SSE after a short delay
+            setTimeout(() => startTerminalSSE(), 1000);
+        });
+    }
+    if (stopTerminalBtn) {
+        stopTerminalBtn.addEventListener('click', () => {
+            stopTerminalProcess();
+            stopTerminalSSE();
+        });
+    }
+    if (terminalCommandInput) {
+        terminalCommandInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                executeTerminalCommand();
+            }
+        });
+    }
+    if (terminalHistoryBtn) {
+        terminalHistoryBtn.addEventListener('click', showTerminalCommandHistory);
+    }
+    if (closeTerminalHistoryModal) {
+        closeTerminalHistoryModal.addEventListener('click', () => {
+            if (terminalHistoryModal) terminalHistoryModal.classList.add('hidden');
+        });
+    }
+    
+    // --- Confirm Stop/Start Buttons ---
+    if (confirmStopAndStartBtn) {
+        confirmStopAndStartBtn.addEventListener('click', async () => {
+            if (terminalConfirmModal) terminalConfirmModal.classList.add('hidden');
+            await stopTerminalProcess();
+            if (pendingTerminalCommand) {
+                executeTerminalCommand(pendingTerminalCommand);
+                pendingTerminalCommand = null;
+            }
+        });
+    }
+    if (cancelStopAndStartBtn) {
+        cancelStopAndStartBtn.addEventListener('click', () => {
+            if (terminalConfirmModal) terminalConfirmModal.classList.add('hidden');
+            pendingTerminalCommand = null;
+            resetTerminalButtons();
+        });
+    }
+    
+    // --- Notepad Auto-save ---
+    if (notepadContent) {
+        notepadContent.addEventListener('input', saveNotepadContent);
+    }
+    
+    // --- Close Modals on Escape ---
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            if (terminalConfirmModal && !terminalConfirmModal.classList.contains('hidden')) {
+                terminalConfirmModal.classList.add('hidden');
+                pendingTerminalCommand = null;
+                resetTerminalButtons();
+            }
+            if (terminalHistoryModal && !terminalHistoryModal.classList.contains('hidden')) {
+                terminalHistoryModal.classList.add('hidden');
+            }
+        }
+    });
+    
+    // --- Recent Commands Nav Button ---
+    const recentCommandsNavButton = document.querySelector('.nav-button[onclick*="recent-commands"]');
+    if (recentCommandsNavButton) {
+        recentCommandsNavButton.addEventListener('click', () => {
+            loadRecentCommands();
+        });
+    }
+    
+    // --- Check for Resumed Tasks ---
+    checkResumedTasks();
+});
 
     // Load saved theme on initial page load
     const savedTheme = localStorage.getItem('theme') || 'dark-mode';
