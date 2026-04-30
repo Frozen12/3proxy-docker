@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Rclone WebGUI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark-mode';
+            document.documentElement.className = savedTheme;
+            document.body.className = savedTheme; // Apply to body for background shapes
+        })();
+    </script>
+</head>
+<body class="flex flex-col justify-center items-center min-h-screen p-4">
+    <div class="background-shapes">
+        <div class="shape-1"></div>
+        <div class="shape-2"></div>
+        <div class="shape-3"></div>
+    </div>
+
+    <div class="absolute top-4 right-4 z-20">
+        <!-- Theme Changer Dropdown -->
+        <div class="relative inline-block text-left">
+            <button type="button" id="themeChangerBtn" class="btn-secondary px-4 py-2 rounded-lg text-sm font-medium focus:outline-none flex items-center">
+                <i class="fas fa-palette mr-2"></i> Themes
+            </button>
+            <div id="themeDropdown" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-card-bg-color ring-1 ring-themed ring-opacity-5 focus:outline-none hidden opacity-95" role="menu" aria-orientation="vertical" aria-labelledby="themeChangerBtn">
+                <div class="py-1" role="none">
+                    <a href="#" class="block px-4 py-2 text-sm text-text-color hover:bg-input-bg-color rounded-md mx-1 my-0.5" data-theme="dark-mode">Dark Green (Default)</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-text-color hover:bg-input-bg-color rounded-md mx-1 my-0.5" data-theme="black-mode">Black</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-text-color hover:bg-input-bg-color rounded-md mx-1 my-0.5" data-theme="theme-blue">Blue</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-text-color hover:bg-input-bg-color rounded-md mx-1 my-0.5" data-theme="theme-purple">Purple</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-text-color hover:bg-input-bg-color rounded-md mx-1 my-0.5" data-theme="theme-orange">Orange</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-text-color hover:bg-input-bg-color rounded-md mx-1 my-0.5" data-theme="theme-red">Red</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-text-color hover:bg-input-bg-color rounded-md mx-1 my-0.5" data-theme="theme-teal">Teal</a>
+                    <a href="#" class="block px-4 py-2 text-sm text-text-color hover:bg-input-bg-color rounded-md mx-1 my-0.5" data-theme="theme-indigo">Indigo</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-8 rounded-xl shadow-lg w-full max-w-md relative z-10">
+        <h1 class="text-4xl font-bold text-center mb-6 app-title">Rclone WebGUI Login</h1>
+        {% if error %}
+        <p class="error-message text-center mb-4 text-red-400">{{ error }}</p>
+        {% endif %}
+        <form action="/login" method="post" class="space-y-4">
+            <div>
+                <label for="username" class="block text-sm font-bold mb-2 text-primary-color">Username</label>
+                <input type="text" id="username" name="username" required
+                       class="input-field w-full p-3 rounded-lg focus:ring-2 focus:ring-accent-color focus:border-transparent outline-none">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-bold mb-2 text-primary-color">Password</label>
+                <input type="password" id="password" name="password" required
+                       class="input-field w-full p-3 rounded-lg focus:ring-2 focus:ring-accent-color focus:border-transparent outline-none">
+            </div>
+            <button type="submit"
+                    class="btn-primary w-full p-3 rounded-lg font-semibold text-lg hover:shadow-md">
+                Log In
+            </button>
+        </form>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

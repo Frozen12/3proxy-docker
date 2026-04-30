@@ -1,0 +1,10 @@
+# .dockerignore
+venv/
+*.pyc
+*.log
+.git/
+.gitignore
+.DS_Store
+__pycache__/
+*.env
+*.md

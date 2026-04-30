@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+MANIFEST
+venv/
+env/
+ENV/
+.venv/
+python.env
+
+# Flask
+instance/
+.webassets-cache/
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# OS
+Thumbs.db
+.DS_Store
+*.bak
+*.tmp
+
+# Project specific
+/app/.config/
+static/uploads/
+/tmp/*.txt
+SUMMARY.md
