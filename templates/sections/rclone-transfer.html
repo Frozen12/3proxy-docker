@@ -1,0 +1,162 @@
+<div class="card p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-themed">
+    <h2 class="text-2xl font-bold mb-6 text-primary-color flex items-center">
+        <i class="fas fa-exchange-alt mr-3 text-accent-color"></i> Rclone Transfer
+    </h2>
+
+    <form id="rclone-form" hx-post="/execute-rclone" 
+          hx-target="#rclone-output" 
+          hx-swap="innerHTML"
+          hx-indicator="#rclone-spinner"
+          class="space-y-6">
+        
+        <!-- Mode and Description -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-1">
+                <label for="mode" class="block text-sm font-bold mb-2 text-primary-color flex items-center">
+                    <i class="fas fa-cog mr-2 text-accent-color"></i> Rclone Mode
+                </label>
+                <select id="mode" name="mode" 
+                        class="input-field w-full p-3 rounded-lg custom-select"
+                        hx-get="/flag-suggestions" 
+                        hx-target="#flag-suggestions" 
+                        hx-swap="innerHTML"
+                        hx-trigger="change">
+                    <option value="sync" selected>sync - Make source and destination identical</option>
+                    <option value="copy">copy - Copy files from source to destination</option>
+                    <option value="move">move - Move files from source to destination</option>
+                    <option value="copyurl">copyurl - Copy a URL content to destination</option>
+                    <option value="check">check - Check files match between source and destination</option>
+                    <option value="archive">archive - Archive files for long term storage</option>
+                    <option value="ls">ls - List all files in the path</option>
+                    <option value="tree">tree - List contents in tree-like fashion</option>
+                    <option value="serve">serve - Serve a remote over HTTP/WebDAV</option>
+                </select>
+                <p id="mode-description" class="text-xs mt-1 text-gray-400">Make source and destination identical.</p>
+            </div>
+
+            <!-- Source -->
+            <div class="relative md:col-span-2" id="source-field-container">
+                <label id="source-label" for="source" class="block text-sm font-bold mb-2 text-primary-color flex items-center">
+                    <i class="fas fa-folder-open mr-2 text-accent-color"></i> Source
+                </label>
+                <input type="text" id="source" name="source" 
+                       class="input-field w-full p-3 rounded-lg" 
+                       placeholder="e.g., remote:path or /local/path">
+            </div>
+        </div>
+
+        <!-- Destination -->
+        <div id="destination-field">
+            <label for="destination" class="block text-sm font-bold mb-2 text-primary-color flex items-center">
+                <i class="fas fa-folder mr-2 text-accent-color"></i> Destination
+            </label>
+            <input type="text" id="destination" name="destination" 
+                   class="input-field w-full p-3 rounded-lg" 
+                   placeholder="e.g., remote:path or /local/path">
+        </div>
+
+        <!-- Additional Flags -->
+        <div>
+            <label class="block text-sm font-bold mb-2 text-primary-color flex items-center">
+                <i class="fas fa-flag mr-2 text-accent-color"></i> Additional Flags
+            </label>
+            <div id="flag-suggestions" class="mb-2">
+                <!-- Populated by HTMX on mode change -->
+                <div class="flex flex-wrap gap-2">
+                    <span class="text-xs text-gray-400">Select a mode to see suggested flags</span>
+                </div>
+            </div>
+            <input type="text" id="additional_flags" name="additional_flags" 
+                   class="input-field w-full p-3 rounded-lg" 
+                   placeholder="--your-custom-flags here (space-separated)">
+        </div>
+
+        <!-- Options Row -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+                <label for="transfers" class="block text-sm font-bold mb-2 text-primary-color">Transfers</label>
+                <input type="range" id="transfers" name="transfers" min="1" max="10" value="2" 
+                       class="w-full accent-accent-color">
+                <span id="transfers-value" class="text-xs text-gray-400">2</span>
+            </div>
+            <div>
+                <label for="checkers" class="block text-sm font-bold mb-2 text-primary-color">Checkers</label>
+                <input type="range" id="checkers" name="checkers" min="1" max="10" value="3" 
+                       class="w-full accent-accent-color">
+                <span id="checkers-value" class="text-xs text-gray-400">3</span>
+            </div>
+            <div>
+                <label for="buffer_size" class="block text-sm font-bold mb-2 text-primary-color">Buffer Size</label>
+                <select id="buffer_size" name="buffer_size" class="input-field w-full p-3 rounded-lg custom-select">
+                    <option value="1M">1M</option>
+                    <option value="16M" selected>16M</option>
+                    <option value="32M">32M</option>
+                </select>
+            </div>
+            <div>
+                <label for="loglevel" class="block text-sm font-bold mb-2 text-primary-color">Log Level</label>
+                <select id="loglevel" name="loglevel" class="input-field w-full p-3 rounded-lg custom-select">
+                    <option value="Info" selected>Info</option>
+                    <option value="DEBUG">DEBUG</option>
+                    <option value="ERROR">ERROR</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Checkboxes -->
+        <div class="flex flex-wrap gap-4">
+            <label class="flex items-center text-primary-color checkbox-container hover:scale-105 transition-transform">
+                <input type="checkbox" id="use_drive_trash" name="use_drive_trash" class="form-checkbox h-5 w-5 text-accent-color rounded focus:ring-accent-color">
+                <span class="ml-2">Use Drive Trash</span>
+            </label>
+            <label class="flex items-center text-primary-color checkbox-container hover:scale-105 transition-transform">
+                <input type="checkbox" id="service_account" name="service_account" class="form-checkbox h-5 w-5 text-accent-color rounded focus:ring-accent-color">
+                <span class="ml-2">Use Service Account</span>
+            </label>
+            <label class="flex items-center text-primary-color checkbox-container hover:scale-105 transition-transform">
+                <input type="checkbox" id="dry_run" name="dry_run" class="form-checkbox h-5 w-5 text-accent-color rounded focus:ring-accent-color">
+                <span class="ml-2">Dry Run</span>
+            </label>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex flex-wrap gap-4 justify-center">
+            <button type="submit" class="btn-primary flex-1 md:w-auto hover:scale-105 active:scale-95 transition-transform">
+                <i class="fas fa-play mr-2"></i> Start Transfer
+            </button>
+            <button type="button" class="btn-danger flex-1 md:w-auto hover:scale-105 active:scale-95 transition-transform" 
+                    hx-post="/stop-rclone" hx-target="#rclone-output" hx-swap="innerHTML">
+                <i class="fas fa-stop mr-2"></i> Stop
+            </button>
+            <div id="rclone-spinner" class="hidden inline-flex items-center">
+                <i class="fas fa-spinner fa-spin text-accent-color text-xl"></i>
+                <span class="ml-2 text-sm text-text-color">Processing...</span>
+            </div>
+            <button type="button" class="btn-secondary flex-1 md:w-auto" onclick="clearRcloneOutput()">
+                <i class="fas fa-eraser mr-2"></i> Clear Output
+            </button>
+        </div>
+    </form>
+
+    <!-- Output Area -->
+    <div class="mt-6">
+        <div id="rclone-output" class="output-area min-h-[200px] p-4 rounded-lg border border-themed bg-input-bg-color bg-opacity-50">
+            <p class="text-gray-400 text-sm italic">Output will appear here...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Save form state on change
+document.querySelectorAll('#rclone-form input, #rclone-form select').forEach(el => {
+    el.addEventListener('change', (e) => {
+        if (e.target.name) {
+            fetch('/save-form-state', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({field_name: e.target.name, field_value: e.target.value || e.target.checked})
+            });
+        }
+    });
+});
+</script>

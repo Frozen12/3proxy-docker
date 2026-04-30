@@ -1,0 +1,53 @@
+<div class="card p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-themed">
+    <h2 class="text-2xl font-bold mb-6 text-primary-color flex items-center">
+        <i class="fas fa-cogs mr-3 text-accent-color"></i> Setup
+    </h2>
+
+    <div class="mb-8 border border-themed rounded-xl p-5 bg-input-bg-color bg-opacity-50">
+        <h3 class="text-xl font-semibold mb-3 text-accent-color flex items-center">
+            <i class="fas fa-file-upload mr-2"></i> Upload rclone.conf
+        </h3>
+        <p class="text-sm text-text-color mb-4 opacity-80">Upload your Rclone configuration file. This will overwrite any existing <code class="bg-card-bg-color px-2 py-1 rounded">rclone.conf</code>.</p>
+        <form hx-post="/upload-rclone-conf" 
+              hx-target="#setup-messages" 
+              hx-swap="innerHTML"
+              hx-encoding="multipart/form-data"
+              class="space-y-4">
+            <div class="flex items-center justify-center w-full">
+                <label for="rclone_conf" class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer border-themed hover:bg-input-bg-color transition-colors duration-300">
+                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-accent-color mb-3"></i>
+                        <p class="mb-2 text-sm text-text-color"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                        <p class="text-xs text-gray-400">.conf files only</p>
+                    </div>
+                    <input id="rclone_conf" name="rclone_conf" type="file" accept=".conf" class="hidden" hx-on:change="this.form.requestSubmit()"/>
+                </label>
+            </div>
+        </form>
+    </div>
+
+    <div class="mb-8 border border-themed rounded-xl p-5 bg-input-bg-color bg-opacity-50">
+        <h3 class="text-xl font-semibold mb-3 text-accent-color flex items-center">
+            <i class="fas fa-file-archive mr-2"></i> Upload Service Account (SA) ZIP
+        </h3>
+        <p class="text-sm text-text-color mb-4 opacity-80">Upload a ZIP file containing your service account JSON files. This will clear existing JSONs and extract new ones.</p>
+        <form hx-post="/upload-sa-zip" 
+              hx-target="#setup-messages" 
+              hx-swap="innerHTML"
+              hx-encoding="multipart/form-data"
+              class="space-y-4">
+            <div class="flex items-center justify-center w-full">
+                <label for="sa_zip" class="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer border-themed hover:bg-input-bg-color transition-colors duration-300">
+                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <i class="fas fa-file-archive text-4xl text-accent-color mb-3"></i>
+                        <p class="mb-2 text-sm text-text-color"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                        <p class="text-xs text-gray-400">.zip files only</p>
+                    </div>
+                    <input id="sa_zip" name="sa_zip" type="file" accept=".zip" class="hidden" hx-on:change="this.form.requestSubmit()"/>
+                </label>
+            </div>
+        </form>
+    </div>
+
+    <div id="setup-messages" class="major-steps-output mt-4"></div>
+</div>

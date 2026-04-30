@@ -1113,3 +1113,109 @@ def clear_form_state_api():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=os.environ.get('PORT', 5000))
+
+
+# --- HTMX Routes for HTML Fragments ---
+
+@app.route('/section/<section_name>')
+@login_required
+def get_section(section_name):
+    """Return HTML fragment for a section via HTMX."""
+    valid_sections = ['setup', 'rclone-transfer', 'web-terminal', 'recent-commands', 'notepad']
+    if section_name not in valid_sections:
+        return '<p class="text-red-500">Invalid section</p>', 400
+    
+    template_name = f'sections/{section_name}.html'
+    try:
+        return render_template(template_name)
+    except:
+        return f'<p class="text-red-500">Template not found: {template_name}</p>', 404
+
+
+@app.route('/flag-suggestions')
+@login_required
+def flag_suggestions():
+    """Return flag suggestions based on selected mode."""
+    mode = request.args.get('mode', 'sync')
+    
+    flag_map = {
+        'sync': ['--bwlimit', '--checksum', '--dry-run', '--fast-list', '--ignore-existing'],
+        'copy': ['--bwlimit', '--checksum', '--dry-run', '--fast-list', '--ignore-existing'],
+        'move': ['--bwlimit', '--checksum', '--dry-run', '--fast-list'],
+        'archive': ['--bwlimit', '--checksum', '--dry-run', '--fast-list', '--archive-concurrency'],
+    }
+    
+    flags = flag_map.get(mode, [])
+    if not flags:
+        return '<p class="text-xs text-gray-400">No specific flags for this mode</p>'
+    
+    buttons = ''.join([
+        f'<button type="button" class="btn-secondary text-xs px-2 py-1 rounded hover:scale-105 transition-transform" 
+            onclick="addFlag(\'{flag}\')">{flag}</button>' 
+        for flag in flags
+    ])
+    return f'<div class="flex flex-wrap gap-2">{buttons}</div>'
+
+
+@app.route('/recent-rclone')
+@login_required
+def recent_rclone_fragment():
+    """Return recent rclone transfers HTML fragment."""
+    conn, db_type = get_db_connection()
+    cursor = conn.cursor()
+    
+    if db_type == 'postgresql':
+        cursor.execute('SELECT * FROM rclone_transfers ORDER BY timestamp DESC LIMIT 10')
+    else:
+        cursor.execute('SELECT * FROM rclone_transfers ORDER BY timestamp DESC LIMIT 10')
+    
+    columns = [desc[0] for desc in cursor.description]
+    transfers = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    conn.close()
+    
+    html = ''
+    for t in transfers:
+        html += f'''
+        <div class="p-3 border border-themed rounded-lg bg-card-bg-color hover:bg-input-bg-color transition-colors">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="font-bold text-accent-color">{t['mode']}</span>
+                    <p class="text-sm text-text-color">{t['source']} → {t['destination']}</p>
+                </div>
+                <span class="text-xs px-2 py-1 rounded {'bg-green-500/20 text-green-400' if t['status'] == 'completed' else 'bg-red-500/20 text-red-400'}">{t['status']}</span>
+            </div>
+        </div>
+        '''
+    
+    return html if html else '<p class="text-gray-400 text-sm italic">No recent transfers</p>'
+
+
+@app.route('/recent-terminal')
+@login_required
+def recent_terminal_fragment():
+    """Return recent terminal commands HTML fragment."""
+    conn, db_type = get_db_connection()
+    cursor = conn.cursor()
+    
+    if db_type == 'postgresql':
+        cursor.execute('SELECT * FROM terminal_commands ORDER BY timestamp DESC LIMIT 10')
+    else:
+        cursor.execute('SELECT * FROM terminal_commands ORDER BY timestamp DESC LIMIT 10')
+    
+    columns = [desc[0] for desc in cursor.description]
+    commands = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    conn.close()
+    
+    html = ''
+    for c in commands:
+        html += f'''
+        <div class="p-3 border border-themed rounded-lg bg-card-bg-color hover:bg-input-bg-color transition-colors">
+            <div class="flex justify-between items-start">
+                <code class="text-sm text-accent-color">{c['command']}</code>
+                <span class="text-xs px-2 py-1 rounded {'bg-green-500/20 text-green-400' if c['status'] == 'completed' else 'bg-red-500/20 text-red-400'}">{c['status']}</span>
+            </div>
+        </div>
+        '''
+    
+    return html if html else '<p class="text-gray-400 text-sm italic">No recent commands</p>'
+

@@ -1,0 +1,68 @@
+<div class="card p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-themed">
+    <h2 class="text-2xl font-bold mb-6 text-primary-color flex items-center">
+        <i class="fas fa-terminal mr-3 text-accent-color"></i> Web Terminal
+    </h2>
+
+    <form hx-post="/execute-terminal" 
+          hx-target="#terminal-output" 
+          hx-swap="innerHTML"
+          hx-indicator="#terminal-spinner"
+          class="space-y-4">
+        
+        <div>
+            <label for="terminalCommand" class="block text-sm font-bold mb-2 text-primary-color flex items-center">
+                <i class="fas fa-command mr-2 text-accent-color"></i> Enter Command
+            </label>
+            <input type="text" id="terminalCommand" name="command" 
+                   class="input-field w-full p-3 rounded-lg" 
+                   placeholder="e.g., ls -la /app"
+                   hx-post="/save-form-state"
+                   hx-trigger="keyup changed delay:500ms"
+                   hx-vals='js:{"field_name": "terminalCommand", "field_value": event.target.value}'>
+        </div>
+
+        <div class="flex flex-wrap gap-4 justify-center">
+            <button type="submit" class="btn-primary flex-1 md:w-auto hover:scale-105 active:scale-95 transition-transform">
+                <i class="fas fa-play mr-2"></i> Execute
+            </button>
+            <button type="button" class="btn-danger flex-1 md:w-auto hover:scale-105 active:scale-95 transition-transform"
+                    hx-post="/stop-terminal" hx-target="#terminal-output" hx-swap="innerHTML">
+                <i class="fas fa-stop mr-2"></i> Stop Process
+            </button>
+            <div id="terminal-spinner" class="hidden inline-flex items-center">
+                <i class="fas fa-spinner fa-spin text-accent-color text-xl"></i>
+                <span class="ml-2 text-sm text-text-color">Executing...</span>
+            </div>
+            <button type="button" class="btn-secondary flex-1 md:w-auto hover:scale-105 transition-transform" 
+                    hx-get="/terminal-history-list" hx-target="#terminal-history-modal-body" hx-swap="innerHTML">
+                <i class="fas fa-history mr-2"></i> History
+            </button>
+            <button type="button" class="btn-secondary flex-1 md:w-auto hover:scale-105 transition-transform" onclick="clearTerminalOutput()">
+                <i class="fas fa-eraser mr-2"></i> Clear
+            </button>
+        </div>
+    </form>
+
+    <!-- Terminal Output -->
+    <div class="mt-6">
+        <div id="terminal-output" class="output-area min-h-[300px] p-4 rounded-lg border border-themed bg-black bg-opacity-50 font-mono text-sm">
+            <p class="text-gray-400 italic">Command output will appear here...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Terminal History Modal -->
+<div id="terminalHistoryModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-card-bg-color rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-themed">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-primary-color">Terminal History</h3>
+            <button onclick="document.getElementById('terminalHistoryModal').classList.add('hidden')" 
+                    class="text-text-color hover:text-accent-color transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div id="terminal-history-modal-body">
+            <!-- Populated by HTMX -->
+        </div>
+    </div>
+</div>

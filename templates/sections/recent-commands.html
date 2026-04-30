@@ -1,0 +1,46 @@
+<div class="card p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-themed">
+    <h2 class="text-2xl font-bold mb-6 text-primary-color flex items-center">
+        <i class="fas fa-history mr-3 text-accent-color"></i> Recent Commands
+    </h2>
+
+    <!-- Rclone Transfers -->
+    <div class="mb-6 border border-themed rounded-xl p-5 bg-input-bg-color bg-opacity-50">
+        <h3 class="text-xl font-semibold mb-4 text-accent-color flex items-center">
+            <i class="fas fa-exchange-alt mr-2"></i> Rclone Transfers
+        </h3>
+        <div id="recentRcloneTransfers" 
+             hx-get="/recent-rclone" 
+             hx-trigger="load, every 30s"
+             hx-target="#recentRcloneTransfers" 
+             hx-swap="innerHTML"
+             class="space-y-3">
+            <p class="text-gray-400 text-sm italic">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Terminal Commands -->
+    <div class="border border-themed rounded-xl p-5 bg-input-bg-color bg-opacity-50">
+        <h3 class="text-xl font-semibold mb-4 text-accent-color flex items-center">
+            <i class="fas fa-terminal mr-2"></i> Terminal Commands
+        </h3>
+        <div id="recentTerminalCommands"
+             hx-get="/recent-terminal" 
+             hx-trigger="load, every 30s"
+             hx-target="#recentTerminalCommands" 
+             hx-swap="innerHTML"
+             class="space-y-3">
+            <p class="text-gray-400 text-sm italic">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Clear History Button -->
+    <div class="flex justify-end mt-6">
+        <button hx-post="/clear-all-history" 
+                hx-confirm="Are you sure you want to clear all history?"
+                hx-target="#recentRcloneTransfers, #recentTerminalCommands"
+                hx-swap="innerHTML"
+                class="btn-danger hover:scale-105 active:scale-95 transition-transform">
+            <i class="fas fa-trash-alt mr-2"></i> Clear All History
+        </button>
+    </div>
+</div>
