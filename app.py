@@ -20,7 +20,8 @@ if APP_DIR not in sys.path:
 # Import database abstraction layer
 from db import (
     get_db_connection, init_db, save_rclone_config, get_latest_rclone_config,
-    save_task, update_task_status, get_incomplete_tasks, save_log, get_recent_logs, get_db_info
+    save_task, update_task_status, get_incomplete_tasks, save_log, get_recent_logs, get_db_info,
+    save_form_state, load_form_state, clear_form_state
 )
 
 app = Flask(__name__, 
@@ -1073,6 +1074,42 @@ def get_notepad_content():
         result = cursor.fetchone()
         content = result[0] if result else ""
     return jsonify({"status": "success", "content": content})
+
+# --- Form State API Endpoints ---
+
+@app.route('/save-form-state', methods=['POST'])
+@login_required
+def save_form_state_api():
+    """Save form field state to database."""
+    data = request.get_json()
+    field_name = data.get('field_name')
+    field_value = data.get('field_value', '')
+    
+    if not field_name:
+        return jsonify({"status": "error", "message": "field_name required"}), 400
+    
+    if save_form_state(field_name, str(field_value)):
+        return jsonify({"status": "success"})
+    return jsonify({"status": "error", "message": "Failed to save"}), 500
+
+@app.route('/get-form-state', methods=['GET'])
+@login_required
+def get_form_state_api():
+    """Get form field state from database."""
+    field_name = request.args.get('field_name')
+    state = load_form_state(field_name)
+    return jsonify(state)
+
+@app.route('/clear-form-state', methods=['POST'])
+@login_required
+def clear_form_state_api():
+    """Clear form state (optionally single field)."""
+    data = request.get_json() if request.is_json else {}
+    field_name = data.get('field_name')
+    
+    if clear_form_state(field_name):
+        return jsonify({"status": "success"})
+    return jsonify({"status": "error", "message": "Failed to clear"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=os.environ.get('PORT', 5000))

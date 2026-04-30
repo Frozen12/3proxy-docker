@@ -144,6 +144,16 @@ def _init_postgresql(cursor):
         )
     ''')
     
+    # Form state table for sticky fields
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS form_state (
+            id SERIAL PRIMARY KEY,
+            field_name TEXT UNIQUE NOT NULL,
+            field_value TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
     # App logs table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS app_logs (
@@ -517,7 +527,7 @@ def get_db_info() -> Dict[str, Any]:
         
         # Get table counts
         tables = ['login_attempts', 'rclone_transfers', 'terminal_commands', 
-                  'process_states', 'rclone_config', 'tasks', 'app_logs']
+                  'process_states', 'rclone_config', 'tasks', 'app_logs', 'form_state']
         
         for table in tables:
             try:
@@ -531,3 +541,87 @@ def get_db_info() -> Dict[str, Any]:
         info['error'] = str(e)
     
     return info
+
+
+# --- Form State Functions ---
+
+def save_form_state(field_name: str, field_value: str) -> bool:
+    """Save form field state to database."""
+    try:
+        conn, db_type = get_db_connection()
+        cursor = conn.cursor()
+        
+        if db_type == 'postgresql':
+            cursor.execute('''
+                INSERT INTO form_state (field_name, field_value, updated_at)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT(field_name) DO UPDATE
+                SET field_value = EXCLUDED.field_value, updated_at = CURRENT_TIMESTAMP
+            ''', (field_name, field_value))
+        else:
+            cursor.execute('''
+                INSERT OR REPLACE INTO form_state (field_name, field_value, updated_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+            ''', (field_name, field_value))
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error saving form state: {e}")
+        return False
+
+
+def load_form_state(field_name: str = None) -> Dict[str, str]:
+    """Load form field state from database. Returns dict of {field_name: value}."""
+    try:
+        conn, db_type = get_db_connection()
+        cursor = conn.cursor()
+        
+        if field_name:
+            if db_type == 'postgresql':
+                cursor.execute('''
+                    SELECT field_name, field_value FROM form_state WHERE field_name = %s
+                ''', (field_name,))
+            else:
+                cursor.execute('''
+                    SELECT field_name, field_value FROM form_state WHERE field_name = ?
+                ''', (field_name,))
+            row = cursor.fetchone()
+            conn.close()
+            if row:
+                return {row[0]: row[1]}
+            return {}
+        else:
+            if db_type == 'postgresql':
+                cursor.execute(''SELECT field_name, field_value FROM form_state'')
+            else:
+                cursor.execute(''SELECT field_name, field_value FROM form_state'')
+            rows = cursor.fetchall()
+            conn.close()
+            return {row[0]: row[1] for row in rows}
+    except Exception as e:
+        print(f"Error loading form state: {e}")
+        return {}
+
+
+def clear_form_state(field_name: str = None) -> bool:
+    """Clear form state. If field_name is None, clears all."""
+    try:
+        conn, db_type = get_db_connection()
+        cursor = conn.cursor()
+        
+        if field_name:
+            if db_type == 'postgresql':
+                cursor.execute(''DELETE FROM form_state WHERE field_name = %s'', (field_name,))
+            else:
+                cursor.execute(''DELETE FROM form_state WHERE field_name = ?'', (field_name,))
+        else:
+            cursor.execute(''DELETE FROM form_state'')
+        
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error clearing form state: {e}")
+        return False

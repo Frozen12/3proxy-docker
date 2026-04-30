@@ -28,6 +28,7 @@ let confirmStopAndStartBtn, cancelStopAndStartBtn, terminalHistoryBtn;
 let terminalHistoryModal, terminalHistoryContent, closeTerminalHistoryModal;
 let recentRcloneTransfersDiv, recentTerminalCommandsDiv;
 let notepadContent, header;
+let additional_flags_select;
 
 // Toast notification system
 function showToast(message, type = 'info', duration = 3000) {
@@ -137,8 +138,15 @@ startTerminalSSE = function() {
 
 // For header scroll behavior
 let lastScrollY = 0;
-const header = document.querySelector('header');
-const headerHeight = header ? header.offsetHeight : 0;
+let headerHeight = 0;
+
+// Initialize header in DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    const headerEl = document.querySelector('header');
+    if (headerEl) {
+        headerHeight = headerEl.offsetHeight;
+    }
+});
 
 const RcloneModeDescriptions = {
     "sync": "Make source and destination identical.",
@@ -614,7 +622,7 @@ showSection = function(sectionId) {
         buffer_size: bufferSizeSelect ? bufferSizeSelect.value : '16M',
         order: orderSelect ? orderSelect.value : 'size,mixed,50',
         loglevel: loglevelSelect ? loglevelSelect.value : 'Info',
-        additional_flags: additionalFlagsInput ? additionalFlagsInput.value.trim() : '',
+        additional_flags: getAdditionalFlags(),
         use_drive_trash: useDriveTrashCheckbox ? useDriveTrashCheckbox.checked : false,
         service_account: serviceAccountCheckbox ? serviceAccountCheckbox.checked : false,
         dry_run: dryRunCheckbox ? dryRunCheckbox.checked : false,
@@ -1203,10 +1211,27 @@ function fillTerminalCommand(command) {
 
 function fillRcloneTransfer(data) {
     if (modeSelect) modeSelect.value = data.mode;
-    if (sourceInput) sourceInput.value = data.source;
-    if (destinationInput) destinationInput.value = data.destination;
-    if (serveProtocolSelect) serveProtocolSelect.value = data.protocol;
-    if (additionalFlagsInput) additionalFlagsInput.value = data.flags;
+    if (sourceInput) sourceInput.value = data.source || '';
+    if (destinationInput) destinationInput.value = data.destination || '';
+    if (serveProtocolSelect) serveProtocolSelect.value = data.protocol || 'dav';
+    
+    // Handle additional flags - populate both multi-select and text input
+    if (data.flags) {
+        // First, select matching options in multi-select
+        if (additional_flags_select) {
+            const flags = data.flags.split(' ');
+            Array.from(additional_flags_select.options).forEach(option => {
+                option.selected = flags.includes(option.value);
+            });
+        }
+        // Put any remaining flags in the text input
+        if (additionalFlagsInput) {
+            const allFlags = data.flags.split(' ');
+            const dropdownFlags = Array.from(additional_flags_select?.selectedOptions || []).map(o => o.value);
+            const customFlags = allFlags.filter(f => !dropdownFlags.includes(f));
+            additionalFlagsInput.value = customFlags.join(' ');
+        }
+    }
     
     updateModeDescription(); // Re-evaluate UI based on new mode
     toggleRemoteField(); // Re-evaluate UI based on new mode
@@ -1430,6 +1455,7 @@ document.addEventListener('DOMContentLoaded', () => {
     orderSelect = document.getElementById('order');
     loglevelSelect = document.getElementById('loglevel');
     additionalFlagsInput = document.getElementById('additional_flags');
+    additional_flags_select = document.getElementById('additional_flags_select');
     useDriveTrashCheckbox = document.getElementById('use_drive_trash');
     serviceAccountCheckbox = document.getElementById('service_account');
     dryRunCheckbox = document.getElementById('dry_run');
@@ -1780,4 +1806,195 @@ document.addEventListener('DOMContentLoaded', () => {
     if (recentCommandsNavButton) {
         recentCommandsNavButton.addEventListener('click', loadRecentCommands);
     }
+    
+    // --- Load saved form state from DB ---
+    loadFormState();
 });
+
+// --- Form State Functions ---
+
+async function loadFormState() {
+    try {
+        const response = await fetch('/get-form-state');
+        const state = await response.json();
+        
+        // Restore form values
+        if (state.mode && modeSelect) {
+            modeSelect.value = state.mode;
+            updateModeDescription();
+            toggleRemoteField();
+        }
+        if (state.source && sourceInput) sourceInput.value = state.source;
+        if (state.destination && destinationInput) destinationInput.value = state.destination;
+        if (state.transfers && transfersInput) {
+            transfersInput.value = state.transfers;
+            if (transfersValueSpan) transfersValueSpan.textContent = state.transfers;
+        }
+        if (state.checkers && checkersInput) {
+            checkersInput.value = state.checkers;
+            if (checkersValueSpan) checkersValueSpan.textContent = state.checkers;
+        }
+        if (state.buffer_size && bufferSizeSelect) bufferSizeSelect.value = state.buffer_size;
+        if (state.order && orderSelect) orderSelect.value = state.order;
+        if (state.loglevel && loglevelSelect) loglevelSelect.value = state.loglevel;
+        if (state.additional_flags) {
+            if (additionalFlagsInput) additionalFlagsInput.value = state.additional_flags;
+            // Also select matching options in multi-select
+            if (additional_flags_select) {
+                const flags = state.additional_flags.split(' ');
+                Array.from(additional_flags_select.options).forEach(option => {
+                    option.selected = flags.includes(option.value);
+                });
+            }
+        }
+        if (state.use_drive_trash !== undefined && useDriveTrashCheckbox) {
+            useDriveTrashCheckbox.checked = state.use_drive_trash === 'true';
+        }
+        if (state.service_account !== undefined && serviceAccountCheckbox) {
+            serviceAccountCheckbox.checked = state.service_account === 'true';
+        }
+        if (state.dry_run !== undefined && dryRunCheckbox) {
+            dryRunCheckbox.checked = state.dry_run === 'true';
+        }
+        if (state.terminalCommand && terminalCommandInput) {
+            terminalCommandInput.value = state.terminalCommand;
+        }
+        if (state.notepad_content && notepadContent) {
+            notepadContent.value = state.notepad_content;
+        }
+        
+        console.log('Form state loaded from DB');
+    } catch (error) {
+        console.error('Error loading form state:', error);
+    }
+}
+
+async function saveFormField(fieldName, value) {
+    try {
+        await fetch('/save-form-state', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({field_name: fieldName, field_value: value})
+        });
+    } catch (error) {
+        console.error('Error saving form state:', error);
+    }
+}
+
+function getAdditionalFlags() {
+    // Get selected options from multi-select
+    const selectedFlags = [];
+    if (additional_flags_select) {
+        Array.from(additional_flags_select.selectedOptions).forEach(option => {
+            selectedFlags.push(option.value);
+        });
+    }
+    // Get custom flags from text input
+    if (additionalFlagsInput && additionalFlagsInput.value.trim()) {
+        const customFlags = additionalFlagsInput.value.trim().split(' ').filter(f => f);
+        selectedFlags.push(...customFlags);
+    }
+    return selectedFlags.join(' ');
+}
+
+// --- Setup Form Auto-save Listeners ---
+function setupFormAutoSave() {
+    const saveDelay = 500; // Debounce delay
+    let saveTimers = {};
+    
+    function debouncedSave(fieldName, value) {
+        if (saveTimers[fieldName]) clearTimeout(saveTimers[fieldName]);
+        saveTimers[fieldName] = setTimeout(() => {
+            saveFormField(fieldName, value);
+        }, saveDelay);
+    }
+    
+    if (modeSelect) {
+        modeSelect.addEventListener('change', () => debouncedSave('mode', modeSelect.value));
+    }
+    if (sourceInput) {
+        sourceInput.addEventListener('input', () => debouncedSave('source', sourceInput.value));
+    }
+    if (destinationInput) {
+        destinationInput.addEventListener('input', () => debouncedSave('destination', destinationInput.value));
+    }
+    if (transfersInput) {
+        transfersInput.addEventListener('input', () => debouncedSave('transfers', transfersInput.value));
+    }
+    if (checkersInput) {
+        checkersInput.addEventListener('input', () => debouncedSave('checkers', checkersInput.value));
+    }
+    if (bufferSizeSelect) {
+        bufferSizeSelect.addEventListener('change', () => debouncedSave('buffer_size', bufferSizeSelect.value));
+    }
+    if (orderSelect) {
+        orderSelect.addEventListener('change', () => debouncedSave('order', orderSelect.value));
+    }
+    if (loglevelSelect) {
+        loglevelSelect.addEventListener('change', () => debouncedSave('loglevel', loglevelSelect.value));
+    }
+    if (additionalFlagsInput) {
+        additionalFlagsInput.addEventListener('input', () => debouncedSave('additional_flags', additionalFlagsInput.value));
+    }
+    if (additional_flags_select) {
+        additional_flags_select.addEventListener('change', () => {
+            const selected = Array.from(additional_flags_select.selectedOptions).map(o => o.value).join(' ');
+            debouncedSave('additional_flags', selected + (additionalFlagsInput?.value ? ' ' + additionalFlagsInput.value : ''));
+        });
+    }
+    if (useDriveTrashCheckbox) {
+        useDriveTrashCheckbox.addEventListener('change', () => debouncedSave('use_drive_trash', useDriveTrashCheckbox.checked));
+    }
+    if (serviceAccountCheckbox) {
+        serviceAccountCheckbox.addEventListener('change', () => debouncedSave('service_account', serviceAccountCheckbox.checked));
+    }
+    if (dryRunCheckbox) {
+        dryRunCheckbox.addEventListener('change', () => debouncedSave('dry_run', dryRunCheckbox.checked));
+    }
+    if (terminalCommandInput) {
+        terminalCommandInput.addEventListener('input', () => debouncedSave('terminalCommand', terminalCommandInput.value));
+    }
+    if (notepadContent) {
+        notepadContent.addEventListener('input', () => debouncedSave('notepad_content', notepadContent.value));
+    }
+}
+
+// Call this inside DOMContentLoaded after elements are initialized
+setupFormAutoSave();
+
+// --- Clear History Functions ---
+
+async function clearAllRecentCommands() {
+    if (!confirm('Are you sure you want to clear all command history? This cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/clear-history', {method: 'POST'});
+        const result = await response.json();
+        if (result.success) {
+            showToast('Command history cleared', 'success');
+            loadRecentCommands(); // Reload the display
+        } else {
+            showToast('Failed to clear history', 'error');
+        }
+    } catch (error) {
+        showToast('Error clearing history', 'error');
+        console.error('Error:', error);
+    }
+}
+
+async function clearRcloneOutput() {
+    if (!confirm('Clear Rclone output?')) return;
+    if (rcloneLiveOutput) rcloneLiveOutput.textContent = '';
+    if (rcloneMajorStepsOutput) rcloneMajorStepsOutput.textContent = '';
+    await saveFormField('rclone_output', '');
+    showToast('Rclone output cleared', 'info');
+}
+
+async function clearTerminalOutput() {
+    if (!confirm('Clear Terminal output?')) return;
+    if (terminalOutput) terminalOutput.textContent = '';
+    await saveFormField('terminal_output', '');
+    showToast('Terminal output cleared', 'info');
+}

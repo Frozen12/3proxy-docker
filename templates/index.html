@@ -231,7 +231,23 @@
                     </div>
                     <div>
                         <label for="additional_flags" class="block text-sm font-bold mb-2 text-primary-color">Additional Flags</label>
-                        <input type="text" id="additional_flags" class="input-field w-full p-3 rounded-lg" value="--azureblob-env-auth">
+                        <div class="relative">
+                            <select id="additional_flags_select" class="input-field w-full p-3 rounded-lg custom-select mb-2" multiple>
+                                <option value="--azureblob-env-auth">--azureblob-env-auth</option>
+                                <option value="--s3-env-auth">--s3-env-auth</option>
+                                <option value="--drive-shared-with-me">--drive-shared-with-me</option>
+                                <option value="--drive-trash-only">--drive-trash-only</option>
+                                <option value="--checksum">--checksum</option>
+                                <option value="--ignore-times">--ignore-times</option>
+                                <option value="--ignore-existing">--ignore-existing</option>
+                                <option value="--no-check-dest">--no-check-dest</option>
+                                <option value="--update">--update</option>
+                                <option value="--use-mmap">--use-mmap</option>
+                                <option value="--fast-list">--fast-list</option>
+                            </select>
+                            <input type="text" id="additional_flags" class="input-field w-full p-3 rounded-lg" placeholder="Or type custom flags (space-separated)">
+                            <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple, or type custom flags above</p>
+                        </div>
                     </div>
                 </div>
 
