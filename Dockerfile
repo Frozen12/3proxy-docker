@@ -39,6 +39,7 @@ WORKDIR /app
 # Copy the application files into the container
 COPY requirements.txt .
 COPY app.py .
+COPY db.py .
 COPY templates/ templates/
 COPY static/ static/
 
