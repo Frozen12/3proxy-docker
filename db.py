@@ -594,9 +594,9 @@ def load_form_state(field_name: str = None) -> Dict[str, str]:
             return {}
         else:
             if db_type == 'postgresql':
-                cursor.execute(''SELECT field_name, field_value FROM form_state'')
+                cursor.execute('SELECT field_name, field_value FROM form_state')
             else:
-                cursor.execute(''SELECT field_name, field_value FROM form_state'')
+                cursor.execute('SELECT field_name, field_value FROM form_state')
             rows = cursor.fetchall()
             conn.close()
             return {row[0]: row[1] for row in rows}
@@ -613,11 +613,11 @@ def clear_form_state(field_name: str = None) -> bool:
         
         if field_name:
             if db_type == 'postgresql':
-                cursor.execute(''DELETE FROM form_state WHERE field_name = %s'', (field_name,))
+                cursor.execute('DELETE FROM form_state WHERE field_name = %s', (field_name,))
             else:
-                cursor.execute(''DELETE FROM form_state WHERE field_name = ?'', (field_name,))
+                cursor.execute('DELETE FROM form_state WHERE field_name = ?', (field_name,))
         else:
-            cursor.execute(''DELETE FROM form_state'')
+            cursor.execute('DELETE FROM form_state')
         
         conn.commit()
         conn.close()
