@@ -1150,8 +1150,7 @@ def flag_suggestions():
         return '<p class="text-xs text-gray-400">No specific flags for this mode</p>'
     
     buttons = ''.join([
-        f'<button type="button" class="btn-secondary text-xs px-2 py-1 rounded hover:scale-105 transition-transform" 
-            onclick="addFlag(\'{flag}\')">{flag}</button>' 
+        f'<button type="button" class="btn-secondary text-xs px-2 py-1 rounded hover:scale-105 transition-transform" onclick="addFlag(\'{flag}\')">{flag}</button>' 
         for flag in flags
     ])
     return f'<div class="flex flex-wrap gap-2">{buttons}</div>'
