@@ -61,4 +61,4 @@ EXPOSE 5000
 # --bind 0.0.0.0:${PORT} makes it listen on all interfaces and the port defined by Render
 # --workers determines how many concurrent requests can be handled (adjust based on resources)
 # --timeout increases the request timeout for potentially long Rclone operations
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "300", "app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--timeout", "300", "--chdir", "/app", "app:app"]

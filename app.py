@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 import threading
 import json
@@ -10,6 +11,11 @@ import zipfile
 import shutil
 import re
 import sqlite3
+
+# Ensure the application directory is in the Python path
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+if APP_DIR not in sys.path:
+    sys.path.insert(0, APP_DIR)
 
 # Import database abstraction layer
 from db import (
