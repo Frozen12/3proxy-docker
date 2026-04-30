@@ -16,20 +16,17 @@ RUN apk add --no-cache \
 
 # Install rclone using a tagged version for reproducibility
 RUN set -eux; \
-    # Download the rclone zip archive with specific version
-    wget -q "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-amd64.zip" -O rclone.zip; \
+    # Download the rclone zip archive with specific version using curl
+    curl -fsSL "https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-amd64.zip" -o /tmp/rclone.zip; \
     \
-    # Create a temporary directory for extraction
-    mkdir -p /tmp/rclone-extracted; \
+    # Unzip the file - rclone creates a directory like rclone-v1.73.5-linux-amd64
+    unzip -q /tmp/rclone.zip -d /tmp/; \
     \
-    # Unzip the file into the temporary directory
-    unzip -q rclone.zip -d /tmp/rclone-extracted/; \
-    \
-    # Find the extracted rclone executable and move it to /usr/local/bin
-    find /tmp/rclone-extracted -type f -name "rclone" -exec mv {} /usr/local/bin/ \; ; \
+    # Move the rclone binary to /usr/local/bin (we know the exact path)
+    mv "/tmp/rclone-${RCLONE_VERSION}-linux-amd64/rclone" /usr/local/bin/; \
     \
     # Clean up temporary files and directories
-    rm -rf rclone.zip /tmp/rclone-extracted; \
+    rm -rf /tmp/rclone.zip "/tmp/rclone-${RCLONE_VERSION}-linux-amd64"; \
     \
     # Make rclone executable
     chmod +x /usr/local/bin/rclone; \
